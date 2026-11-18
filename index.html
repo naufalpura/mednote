@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SehatKu - Catatan Kesehatan & Riwayat Obat</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter & Plus Jakarta Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js untuk Grafik Tren Kesehatan -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-heading { font-family: 'Plus Jakarta Sans', sans-serif; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 8px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .tab-active {
+            border-bottom: 3px solid #0d9488;
+            color: #0f766e;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- Header / Navbar -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Brand -->
+                <div class="flex items-center gap-3">
+                    <div class="bg-teal-600 text-white p-2.5 rounded-xl shadow-md shadow-teal-600/20">
+                        <i class="fa-solid fa-heart-pulse text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-heading font-bold text-lg sm:text-xl text-slate-900 leading-tight">SehatKu</h1>
+                        <p class="text-xs text-slate-500 hidden sm:block">Personal Health & Medication Log</p>
+                    </div>
+                </div>
+
+                <!-- Connection Status & Actions -->
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <!-- Status Badge -->
+                    <div id="connection-badge" class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 cursor-pointer" onclick="switchTab('settings')" title="Klik untuk atur koneksi Google Sheets">
+                        <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse" id="connection-dot"></span>
+                        <span id="connection-text">Mode Lokal (Demo)</span>
+                    </div>
+
+                    <!-- Sync Button -->
+                    <button onclick="syncFromGoogleSheets()" id="btn-sync" class="p-2.5 text-slate-600 hover:text-teal-600 hover:bg-teal-50 rounded-xl transition flex items-center gap-1.5 text-sm font-medium border border-slate-200 bg-white" title="Sinkronisasi data dengan Google Spreadsheet">
+                        <i class="fa-solid fa-rotate" id="sync-icon"></i>
+                        <span class="hidden md:inline">Sync</span>
+                    </button>
+
+                    <!-- Export CSV Button -->
+                    <button onclick="exportAllCSV()" class="p-2.5 text-slate-600 hover:text-teal-600 hover:bg-teal-50 rounded-xl transition flex items-center gap-1.5 text-sm font-medium border border-slate-200 bg-white" title="Unduh data sebagai CSV">
+                        <i class="fa-solid fa-file-csv text-teal-600"></i>
+                        <span class="hidden md:inline">Export</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <nav class="flex space-x-1 sm:space-x-6 overflow-x-auto no-scrollbar -mb-px">
+                <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn tab-active py-3.5 px-2 text-sm whitespace-nowrap flex items-center gap-2 transition">
+                    <i class="fa-solid fa-chart-pie"></i> Dashboard
+                </button>
+                <button onclick="switchTab('vitals')" id="tab-vitals" class="tab-btn py-3.5 px-2 text-sm text-slate-500 hover:text-slate-800 whitespace-nowrap flex items-center gap-2 transition">
+                    <i class="fa-solid fa-stethoscope"></i> Catatan Vital & Gula
+                </button>
+                <button onclick="switchTab('meds')" id="tab-meds" class="tab-btn py-3.5 px-2 text-sm text-slate-500 hover:text-slate-800 whitespace-nowrap flex items-center gap-2 transition">
+                    <i class="fa-solid fa-pills"></i> History Minum Obat
+                </button>
+                <button onclick="switchTab('settings')" id="tab-settings" class="tab-btn py-3.5 px-2 text-sm text-slate-500 hover:text-slate-800 whitespace-nowrap flex items-center gap-2 transition">
+                    <i class="fa-brands fa-google-drive text-emerald-600"></i> Koneksi Google Sheets
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- ==================== TAB 1: DASHBOARD ==================== -->
+        <section id="view-dashboard" class="space-y-6">
+            <!-- Quick Action Banner -->
+            <div class="bg-gradient-to-r from-teal-600 to-emerald-600 rounded-2xl p-5 sm:p-6 text-white shadow-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h2 class="text-xl sm:text-2xl font-bold">Halo! Bagaimana kondisi kesehatanmu hari ini?</h2>
+                    <p class="text-teal-100 text-sm mt-1">Catat rutin tekanan darah, gula darah, dan jadwal obat agar tetap terkontrol.</p>
+                </div>
+                <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                    <button onclick="switchTab('vitals')" class="flex-1 sm:flex-initial bg-white text-teal-700 hover:bg-teal-50 px-4 py-2.5 rounded-xl text-sm font-semibold shadow transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Catat Tensi/Gula
+                    </button>
+                    <button onclick="switchTab('meds')" class="flex-1 sm:flex-initial bg-teal-800/60 hover:bg-teal-800 text-white border border-teal-400/30 px-4 py-2.5 rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-capsules"></i> Catat Obat
+                    </button>
+                </div>
+            </div>
+
+            <!-- Summary Metric Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Card Tensi -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition">
+                    <div class="flex justify-between items-start">
+                        <div class="p-2.5 bg-rose-50 text-rose-600 rounded-xl">
+                            <i class="fa-solid fa-heart-pulse text-lg"></i>
+                        </div>
+                        <span id="dash-bp-badge" class="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-600">-</span>
+                    </div>
+                    <p class="text-slate-500 text-xs font-medium mt-4 uppercase tracking-wider">Tekanan Darah Terakhir</p>
+                    <div class="flex items-baseline gap-1.5 mt-1">
+                        <h3 id="dash-bp-val" class="text-2xl font-bold text-slate-900">--/--</h3>
+                        <span class="text-xs text-slate-400 font-medium">mmHg</span>
+                    </div>
+                    <p id="dash-bp-date" class="text-xs text-slate-400 mt-2">Belum ada data</p>
+                </div>
+
+                <!-- Card Gula Darah -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition">
+                    <div class="flex justify-between items-start">
+                        <div class="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
+                            <i class="fa-solid fa-droplet text-lg"></i>
+                        </div>
+                        <span id="dash-sugar-badge" class="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-600">-</span>
+                    </div>
+                    <p class="text-slate-500 text-xs font-medium mt-4 uppercase tracking-wider">Gula Darah Terakhir</p>
+                    <div class="flex items-baseline gap-1.5 mt-1">
+                        <h3 id="dash-sugar-val" class="text-2xl font-bold text-slate-900">--</h3>
+                        <span class="text-xs text-slate-400 font-medium">mg/dL</span>
+                    </div>
+                    <p id="dash-sugar-type" class="text-xs text-slate-400 mt-2">Belum ada data</p>
+                </div>
+
+                <!-- Card Berat Badan & Suhu -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition">
+                    <div class="flex justify-between items-start">
+                        <div class="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                            <i class="fa-solid fa-weight-scale text-lg"></i>
+                        </div>
+                        <span id="dash-temp-val" class="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700">-- °C</span>
+                    </div>
+                    <p class="text-slate-500 text-xs font-medium mt-4 uppercase tracking-wider">Berat Badan & Nadi</p>
+                    <div class="flex items-baseline gap-2 mt-1">
+                        <h3 id="dash-weight-val" class="text-2xl font-bold text-slate-900">--</h3>
+                        <span class="text-xs text-slate-400 font-medium">kg</span>
+                        <span class="text-slate-300">|</span>
+                        <span id="dash-hr-val" class="text-sm font-semibold text-slate-700">-- bpm</span>
+                    </div>
+                    <p id="dash-weight-date" class="text-xs text-slate-400 mt-2">Update terbaru</p>
+                </div>
+
+                <!-- Card Kepatuhan Obat -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition">
+                    <div class="flex justify-between items-start">
+                        <div class="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                            <i class="fa-solid fa-pills text-lg"></i>
+                        </div>
+                        <span id="dash-med-badge" class="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700">Aktif</span>
+                    </div>
+                    <p class="text-slate-500 text-xs font-medium mt-4 uppercase tracking-wider">Obat Diminum Hari Ini</p>
+                    <div class="flex items-baseline gap-1.5 mt-1">
+                        <h3 id="dash-med-count" class="text-2xl font-bold text-slate-900">0</h3>
+                        <span class="text-xs text-slate-400 font-medium">dosis tercatat</span>
+                    </div>
+                    <p id="dash-med-last" class="text-xs text-slate-400 mt-2 truncate">Terakhir: -</p>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Grafik Tekanan Darah -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <h3 class="font-bold text-slate-800">Tren Tekanan Darah (mmHg)</h3>
+                            <p class="text-xs text-slate-500">10 pencatatan terakhir (Sistolik & Diastolik)</p>
+                        </div>
+                        <span class="text-xs bg-rose-50 text-rose-600 px-2.5 py-1 rounded-lg font-medium">Target: &lt;120/80</span>
+                    </div>
+                    <div class="relative h-64 w-full">
+                        <canvas id="bpChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Grafik Gula Darah -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <h3 class="font-bold text-slate-800">Tren Gula Darah (mg/dL)</h3>
+                            <p class="text-xs text-slate-500">10 pencatatan kadar glukosa terakhir</p>
+                        </div>
+                        <span class="text-xs bg-amber-50 text-amber-600 px-2.5 py-1 rounded-lg font-medium">Normal Puasa: 70-100</span>
+                    </div>
+                    <div class="relative h-64 w-full">
+                        <canvas id="sugarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Medication & Vitals Preview -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Jadwal / Riwayat Obat Terakhir -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-800">Riwayat Minum Obat Terbaru</h3>
+                        <button onclick="switchTab('meds')" class="text-xs text-teal-600 hover:underline font-semibold">Lihat Semua &rarr;</button>
+                    </div>
+                    <div id="dash-recent-meds" class="space-y-3">
+                        <!-- Rendered via JS -->
+                    </div>
+                </div>
+
+                <!-- Catatan Gejala Terakhir -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-800">Catatan Pemeriksaan Terbaru</h3>
+                        <button onclick="switchTab('vitals')" class="text-xs text-teal-600 hover:underline font-semibold">Lihat Semua &rarr;</button>
+                    </div>
+                    <div id="dash-recent-vitals" class="space-y-3">
+                        <!-- Rendered via JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 2: CATATAN VITAL & GULA ==================== -->
+        <section id="view-vitals" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Form Input Kesehatan -->
+                <div class="lg:col-span-1 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm h-fit">
+                    <div class="flex items-center gap-2.5 mb-5 pb-3 border-b border-slate-100">
+                        <div class="p-2 bg-teal-50 text-teal-600 rounded-lg">
+                            <i class="fa-solid fa-notes-medical"></i>
+                        </div>
+                        <h2 class="font-bold text-lg text-slate-800">Tambah Catatan Vital</h2>
+                    </div>
+
+                    <form id="form-vital" onsubmit="handleVitalSubmit(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Tanggal & Waktu</label>
+                            <input type="datetime-local" id="v-datetime" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        </div>
+
+                        <!-- Tensi Darah -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Sistolik (Atas)</label>
+                                <div class="relative">
+                                    <input type="number" id="v-systolic" placeholder="120" min="50" max="300" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                    <span class="absolute right-3 top-2.5 text-xs text-slate-400">mmHg</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Diastolik (Bawah)</label>
+                                <div class="relative">
+                                    <input type="number" id="v-diastolic" placeholder="80" min="30" max="200" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                    <span class="absolute right-3 top-2.5 text-xs text-slate-400">mmHg</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Gula Darah -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Gula Darah</label>
+                                <div class="relative">
+                                    <input type="number" id="v-sugar" placeholder="95" min="20" max="900" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                    <span class="absolute right-3 top-2.5 text-xs text-slate-400">mg/dL</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Waktu Cek Gula</label>
+                                <select id="v-sugar-type" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                    <option value="Puasa">Puasa</option>
+                                    <option value="Sewaktu">Sewaktu (Acak)</option>
+                                    <option value="2 Jam PP">2 Jam Setelah Makan</option>
+                                    <option value="Sebelum Tidur">Sebelum Tidur</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Nadi, Berat Badan, Suhu -->
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nadi (bpm)</label>
+                                <input type="number" id="v-hr" placeholder="75" min="30" max="250" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Berat (kg)</label>
+                                <input type="number" step="0.1" id="v-weight" placeholder="65.5" min="10" max="300" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Suhu (°C)</label>
+                                <input type="number" step="0.1" id="v-temp" placeholder="36.6" min="30" max="45" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Catatan Gejala / Kondisi</label>
+                            <textarea id="v-notes" rows="2" placeholder="Contoh: Sedikit pusing bangun tidur, sudah olahraga pagi..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"></textarea>
+                        </div>
+
+                        <button type="submit" id="btn-save-vital" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md shadow-teal-600/20 transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i> Simpan Catatan Kesehatan
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Tabel Riwayat Kesehatan -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5">
+                        <div>
+                            <h2 class="font-bold text-lg text-slate-800">Riwayat Pemeriksaan Kesehatan</h2>
+                            <p class="text-xs text-slate-500">Semua catatan tensi, gula darah, dan tanda vital</p>
+                        </div>
+                        <div class="flex gap-2 w-full sm:w-auto">
+                            <div class="relative flex-grow sm:w-56">
+                                <i class="fa-solid fa-search absolute left-3 top-3 text-slate-400 text-xs"></i>
+                                <input type="text" id="search-vitals" onkeyup="renderVitalsTable()" placeholder="Cari catatan/gejala..." class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-teal-500">
+                            </div>
+                            <select id="filter-vitals" onchange="renderVitalsTable()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                <option value="all">Semua Status</option>
+                                <option value="high">Tensi/Gula Tinggi</option>
+                                <option value="normal">Normal</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto flex-grow">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase bg-slate-50/70">
+                                    <th class="py-3 px-3 rounded-tl-lg">Waktu</th>
+                                    <th class="py-3 px-3">Tensi (mmHg)</th>
+                                    <th class="py-3 px-3">Gula Darah</th>
+                                    <th class="py-3 px-3">Nadi / BB / Suhu</th>
+                                    <th class="py-3 px-3">Catatan</th>
+                                    <th class="py-3 px-3 text-right rounded-tr-lg">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vitals-table-body" class="divide-y divide-slate-100 text-sm">
+                                <!-- Rendered via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 3: HISTORY MINUM OBAT ==================== -->
+        <section id="view-meds" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Form Input Minum Obat -->
+                <div class="lg:col-span-1 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm h-fit">
+                    <div class="flex items-center gap-2.5 mb-5 pb-3 border-b border-slate-100">
+                        <div class="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+                            <i class="fa-solid fa-prescription-bottle-medical"></i>
+                        </div>
+                        <h2 class="font-bold text-lg text-slate-800">Catat Konsumsi Obat</h2>
+                    </div>
+
+                    <form id="form-med" onsubmit="handleMedSubmit(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Tanggal & Jam Minum</label>
+                            <input type="datetime-local" id="m-datetime" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nama Obat / Vitamin</label>
+                            <input type="text" id="m-name" required placeholder="Contoh: Amlodipine 5mg / Metformin" list="common-meds" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                            <datalist id="common-meds">
+                                <option value="Amlodipine 5mg">
+                                <option value="Amlodipine 10mg">
+                                <option value="Metformin 500mg">
+                                <option value="Glimepiride 2mg">
+                                <option value="Paracetamol 500mg">
+                                <option value="Simvastatin 10mg">
+                                <option value="Vitamin D3 1000 IU">
+                                <option value="Neurobion">
+                            </datalist>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Dosis</label>
+                                <input type="text" id="m-dosage" required placeholder="1 tablet / 500mg" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Waktu / Aturan</label>
+                                <select id="m-timing" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                    <option value="Pagi - Sesudah Makan">Pagi - Sesudah Makan</option>
+                                    <option value="Pagi - Sebelum Makan">Pagi - Sebelum Makan</option>
+                                    <option value="Siang - Sesudah Makan">Siang - Sesudah Makan</option>
+                                    <option value="Malam - Sesudah Makan">Malam - Sesudah Makan</option>
+                                    <option value="Sebelum Tidur">Sebelum Tidur</option>
+                                    <option value="Saat Perlu (PRN)">Saat Perlu (PRN)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Status Konsumsi</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="m-status" value="Sudah Diminum" checked class="peer sr-only">
+                                    <div class="text-center py-2.5 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600 peer-checked:bg-emerald-50 peer-checked:border-emerald-500 peer-checked:text-emerald-700 transition">
+                                        <i class="fa-solid fa-check-circle mr-1"></i> Sudah Diminum
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="m-status" value="Terlewat" class="peer sr-only">
+                                    <div class="text-center py-2.5 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600 peer-checked:bg-rose-50 peer-checked:border-rose-500 peer-checked:text-rose-700 transition">
+                                        <i class="fa-solid fa-circle-xmark mr-1"></i> Terlewat / Tunda
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Catatan Tambahan</label>
+                            <input type="text" id="m-notes" placeholder="Misal: Diminum dengan air hangat" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        </div>
+
+                        <button type="submit" id="btn-save-med" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md shadow-emerald-600/20 transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-check"></i> Simpan History Obat
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Daftar Riwayat Minum Obat -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5">
+                        <div>
+                            <h2 class="font-bold text-lg text-slate-800">Log & History Konsumsi Obat</h2>
+                            <p class="text-xs text-slate-500">Pantau kepatuhan minum obat harian Anda</p>
+                        </div>
+                        <div class="flex gap-2 w-full sm:w-auto">
+                            <div class="relative flex-grow sm:w-56">
+                                <i class="fa-solid fa-search absolute left-3 top-3 text-slate-400 text-xs"></i>
+                                <input type="text" id="search-meds" onkeyup="renderMedsTable()" placeholder="Cari nama obat..." class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-teal-500">
+                            </div>
+                            <select id="filter-meds" onchange="renderMedsTable()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                <option value="all">Semua Status</option>
+                                <option value="Sudah Diminum">Sudah Diminum</option>
+                                <option value="Terlewat">Terlewat</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto flex-grow">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase bg-slate-50/70">
+                                    <th class="py-3 px-3 rounded-tl-lg">Waktu</th>
+                                    <th class="py-3 px-3">Nama Obat</th>
+                                    <th class="py-3 px-3">Dosis & Aturan</th>
+                                    <th class="py-3 px-3">Status</th>
+                                    <th class="py-3 px-3">Catatan</th>
+                                    <th class="py-3 px-3 text-right rounded-tr-lg">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="meds-table-body" class="divide-y divide-slate-100 text-sm">
+                                <!-- Rendered via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 4: PENGATURAN GOOGLE SPREADSHEET ==================== -->
+        <section id="view-settings" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Konfigurasi URL -->
+                <div class="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm h-fit space-y-5">
+                    <div class="flex items-center gap-3 pb-3 border-b border-slate-100">
+                        <div class="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                            <i class="fa-solid fa-database text-lg"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-bold text-lg text-slate-800">Database Google Sheets</h2>
+                            <p class="text-xs text-slate-500">Hubungkan ke Google Apps Script Web App</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1.5">URL Web App Google Apps Script</label>
+                        <input type="url" id="gas-url-input" placeholder="https://script.google.com/macros/s/AKfycb.../exec" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        <p class="text-xs text-slate-400 mt-1.5">Kosongkan jika ingin menggunakan penyimpanan lokal browser (Offline/Demo).</p>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="saveGasUrl()" class="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2.5 px-4 rounded-xl text-sm shadow transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-link"></i> Simpan & Hubungkan
+                        </button>
+                        <button onclick="testGasConnection()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 px-4 rounded-xl text-sm transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-plug-circle-check"></i> Tes Koneksi
+                        </button>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-100 space-y-3">
+                        <h3 class="text-xs font-bold text-slate-700 uppercase">Manajemen Data Lokal</h3>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="pushLocalToSheets()" class="flex-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-semibold py-2 px-3 rounded-xl text-xs transition flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> Upload Data Lokal ke Sheets
+                            </button>
+                            <button onclick="resetDemoData()" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold py-2 px-3 rounded-xl text-xs transition flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-rotate-left"></i> Reset Data Demo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panduan Setup Google Sheets & Apps Script -->
+                <div class="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+                    <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+                        <div>
+                            <h2 class="font-bold text-lg text-slate-800">Panduan Setup Google Spreadsheet (5 Menit)</h2>
+                            <p class="text-xs text-slate-500">Ikuti langkah ini agar data tersimpan permanen di Google Drive Anda</p>
+                        </div>
+                        <span class="px-2.5 py-1 bg-teal-50 text-teal-700 text-xs font-semibold rounded-lg">Gratis & Aman</span>
+                    </div>
+
+                    <ol class="space-y-3 text-sm text-slate-600 list-decimal list-inside">
+                        <li>Buka <a href="https://sheets.new" target="_blank" class="text-teal-600 font-semibold underline">sheets.new</a> untuk membuat Google Spreadsheet baru. Beri nama misalnya <strong>Database Kesehatan Pribadi</strong>.</li>
+                        <li>Di dalam spreadsheet tersebut, klik menu <strong>Ekstensi (Extensions) &rarr; Apps Script</strong>.</li>
+                        <li>Hapus semua kode yang ada di editor Apps Script, lalu <strong>salin dan tempel (paste)</strong> kode di bawah ini:</li>
+                    </ol>
+
+                    <!-- Code Block with Copy Button -->
+                    <div class="relative bg-slate-900 text-slate-100 rounded-xl p-4 font-mono text-xs overflow-x-auto">
+                        <button onclick="copyAppsScript()" class="absolute top-3 right-3 bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg text-xs font-sans font-medium flex items-center gap-1.5 transition">
+                            <i class="fa-regular fa-copy"></i> <span id="copy-btn-text">Salin Kode</span>
+                        </button>
+                        <pre id="apps-script-code" class="leading-relaxed text-emerald-300">function doGet(e) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetVitals = getOrCreateSheet(ss, 'Catatan_Kesehatan', [
+    'ID', 'Waktu', 'Sistolik', 'Diastolik', 'Gula_Darah', 'Tipe_Gula', 'Nadi', 'Berat_Badan', 'Suhu', 'Catatan'
+  ]);
+  const sheetMeds = getOrCreateSheet(ss, 'History_Obat', [
+    'ID', 'Waktu', 'Nama_Obat', 'Dosis', 'Aturan_Minum', 'Status', 'Catatan'
+  ]);
+
+  const vitals = sheetToObjects(sheetVitals);
+  const meds = sheetToObjects(sheetMeds);
+
+  return ContentService.createTextOutput(JSON.stringify({
+    status: 'success',
+    vitals: vitals,
+    meds: meds
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const payload = JSON.parse(e.postData.contents);
+    const action = payload.action; // 'add', 'delete', 'sync_all'
+    const type = payload.type;     // 'vital' atau 'med'
+
+    const sheetVitals = getOrCreateSheet(ss, 'Catatan_Kesehatan', [
+      'ID', 'Waktu', 'Sistolik', 'Diastolik', 'Gula_Darah', 'Tipe_Gula', 'Nadi', 'Berat_Badan', 'Suhu', 'Catatan'
+    ]);
+    const sheetMeds = getOrCreateSheet(ss, 'History_Obat', [
+      'ID', 'Waktu', 'Nama_Obat', 'Dosis', 'Aturan_Minum', 'Status', 'Catatan'
+    ]);
+
+    if (action === 'add') {
+      const d = payload.data;
+      if (type === 'vital') {
+        sheetVitals.appendRow([d.id, d.datetime, d.systolic, d.diastolic, d.sugar, d.sugarType, d.hr, d.weight, d.temp, d.notes]);
+      } else if (type === 'med') {
+        sheetMeds.appendRow([d.id, d.datetime, d.name, d.dosage, d.timing, d.status, d.notes]);
+      }
+    } else if (action === 'delete') {
+      const sheet = type === 'vital' ? sheetVitals : sheetMeds;
+      const rows = sheet.getDataRange().getValues();
+      for (let i = 1; i < rows.length; i++) {
+        if (String(rows[i][0]) === String(payload.id)) {
+          sheet.deleteRow(i + 1);
+          break;
+        }
+      }
+    } else if (action === 'sync_all') {
+      // Menimpa data dengan data lokal saat migrasi awal
+      if (payload.vitals && payload.vitals.length > 0) {
+        sheetVitals.getRange(2, 1, Math.max(sheetVitals.getLastRow(), 1), 10).clearContent();
+        payload.vitals.forEach(d => {
+          sheetVitals.appendRow([d.id, d.datetime, d.systolic, d.diastolic, d.sugar, d.sugarType, d.hr, d.weight, d.temp, d.notes]);
+        });
+      }
+      if (payload.meds && payload.meds.length > 0) {
+        sheetMeds.getRange(2, 1, Math.max(sheetMeds.getLastRow(), 1), 7).clearContent();
+        payload.meds.forEach(d => {
+          sheetMeds.appendRow([d.id, d.datetime, d.name, d.dosage, d.timing, d.status, d.notes]);
+        });
+      }
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({ status: 'success' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function getOrCreateSheet(ss, name, headers) {
+  let sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#e2e8f0');
+  }
+  return sheet;
+}
+
+function sheetToObjects(sheet) {
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+  const result = [];
+  for (let i = 1; i < data.length; i++) {
+    if (!data[i][0]) continue;
+    if (sheet.getName() === 'Catatan_Kesehatan') {
+      result.push({
+        id: String(data[i][0]), datetime: data[i][1], systolic: data[i][2], diastolic: data[i][3],
+        sugar: data[i][4], sugarType: data[i][5], hr: data[i][6], weight: data[i][7], temp: data[i][8], notes: data[i][9]
+      });
+    } else {
+      result.push({
+        id: String(data[i][0]), datetime: data[i][1], name: data[i][2], dosage: data[i][3],
+        timing: data[i][4], status: data[i][5], notes: data[i][6]
+      });
+    }
+  }
+  return result;
+}</pre>
+                    </div>
+
+                    <ol start="4" class="space-y-2 text-sm text-slate-600 list-decimal list-inside">
+                        <li>Klik tombol <strong>Terapkan (Deploy) &rarr; Deployment baru (New deployment)</strong>.</li>
+                        <li>Pilih jenis: <strong>Aplikasi web (Web app)</strong>.</li>
+                        <li>Pada bagian <em>"Yang memiliki akses (Who has access)"</em>, ubah menjadi <strong>Siapa saja (Anyone)</strong>.</li>
+                        <li>Klik <strong>Terapkan (Deploy)</strong>, izinkan akses akun Google Anda, lalu salin <strong>URL Aplikasi Web</strong> dan tempel di kolom sebelah kiri.</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Custom Confirmation Modal (Pengganti confirm() bawaan browser) -->
+    <div id="confirm-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100">
+            <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mb-4">
+                <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+            </div>
+            <h3 id="confirm-title" class="text-lg font-bold text-slate-900">Konfirmasi Hapus</h3>
+            <p id="confirm-message" class="text-sm text-slate-500 mt-1">Apakah Anda yakin ingin menghapus catatan ini? Tindakan ini tidak dapat dibatalkan.</p>
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeConfirmModal()" class="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition">Batal</button>
+                <button id="confirm-yes-btn" class="flex-1 py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-xl text-sm shadow transition">Ya, Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center text-xs text-slate-400 gap-2">
+            <p>&copy; 2026 SehatKu - Aplikasi Pencatatan Kesehatan & Riwayat Obat Pribadi.</p>
+            <p>Catatan: Aplikasi ini adalah alat pencatatan pribadi dan bukan pengganti saran medis profesional.</p>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // ==================== STATE & INITIALIZATION ====================
+        const STORAGE_KEYS = {
+            VITALS: 'sehatku_vitals_data',
+            MEDS: 'sehatku_meds_data',
+            GAS_URL: 'sehatku_gas_webapp_url'
+        };
+
+        let vitalsData = [];
+        let medsData = [];
+        let gasUrl = localStorage.getItem(STORAGE_KEYS.GAS_URL) || '';
+        let bpChartInstance = null;
+        let sugarChartInstance = null;
+
+        // Data Contoh Awal (Demo Mode)
+        const SAMPLE_VITALS = [
+            { id: 'v1', datetime: getOffsetDateTime(-5, 7, 30), systolic: 128, diastolic: 84, sugar: 108, sugarType: 'Puasa', hr: 76, weight: 68.5, temp: 36.6, notes: 'Agak kurang tidur semalam' },
+            { id: 'v2', datetime: getOffsetDateTime(-4, 8, 0), systolic: 124, diastolic: 82, sugar: 102, sugarType: 'Puasa', hr: 74, weight: 68.2, temp: 36.5, notes: 'Kondisi tubuh segar' },
+            { id: 'v3', datetime: getOffsetDateTime(-3, 19, 15), systolic: 135, diastolic: 88, sugar: 145, sugarType: '2 Jam PP', hr: 82, weight: 68.4, temp: 36.7, notes: 'Setelah makan malam agak asin' },
+            { id: 'v4', datetime: getOffsetDateTime(-2, 7, 45), systolic: 120, diastolic: 80, sugar: 96, sugarType: 'Puasa', hr: 72, weight: 68.0, temp: 36.5, notes: 'Jalan pagi 30 menit' },
+            { id: 'v5', datetime: getOffsetDateTime(-1, 8, 10), systolic: 118, diastolic: 78, sugar: 94, sugarType: 'Puasa', hr: 70, weight: 67.8, temp: 36.6, notes: 'Tensi dan gula stabil' },
+            { id: 'v6', datetime: getOffsetDateTime(0, 7, 30), systolic: 119, diastolic: 79, sugar: 95, sugarType: 'Puasa', hr: 72, weight: 67.7, temp: 36.6, notes: 'Pagi ini terasa bugar' }
+        ];
+
+        const SAMPLE_MEDS = [
+            { id: 'm1', datetime: getOffsetDateTime(-1, 8, 0), name: 'Amlodipine 5mg', dosage: '1 tablet', timing: 'Pagi - Sesudah Makan', status: 'Sudah Diminum', notes: 'Rutin pagi' },
+            { id: 'm2', datetime: getOffsetDateTime(-1, 20, 0), name: 'Metformin 500mg', dosage: '1 tablet', timing: 'Malam - Sesudah Makan', status: 'Sudah Diminum', notes: 'Diminum setelah makan malam' },
+            { id: 'm3', datetime: getOffsetDateTime(0, 8, 0), name: 'Amlodipine 5mg', dosage: '1 tablet', timing: 'Pagi - Sesudah Makan', status: 'Sudah Diminum', notes: 'Air putih hangat' },
+            { id: 'm4', datetime: getOffsetDateTime(0, 8, 5), name: 'Vitamin D3 1000 IU', dosage: '1 kapsul', timing: 'Pagi - Sesudah Makan', status: 'Sudah Diminum', notes: 'Suplemen harian' }
+        ];
+
+        function getOffsetDateTime(daysOffset, hour, minute) {
+            const d = new Date();
+            d.setDate(d.getDate() + daysOffset);
+            d.setHours(hour, minute, 0, 0);
+            const tzOffset = d.getTimezoneOffset() * 60000;
+            return new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
+        }
+
+        function getCurrentLocalDateTime() {
+            const now = new Date();
+            const tzOffset = now.getTimezoneOffset() * 60000;
+            return new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
+        }
+
+        window.onload = function () {
+            // Set default datetime di form ke waktu sekarang
+            document.getElementById('v-datetime').value = getCurrentLocalDateTime();
+            document.getElementById('m-datetime').value = getCurrentLocalDateTime();
+            document.getElementById('gas-url-input').value = gasUrl;
+
+            loadInitialData();
+            updateConnectionUI();
+        };
+
+        function loadInitialData() {
+            const storedVitals = localStorage.getItem(STORAGE_KEYS.VITALS);
+            const storedMeds = localStorage.getItem(STORAGE_KEYS.MEDS);
+
+            if (storedVitals && storedMeds) {
+                vitalsData = JSON.parse(storedVitals);
+                medsData = JSON.parse(storedMeds);
+            } else {
+                // Muat data contoh jika baru pertama kali buka
+                vitalsData = [...SAMPLE_VITALS];
+                medsData = [...SAMPLE_MEDS];
+                saveToLocalStorage();
+            }
+
+            refreshAllViews();
+
+            // Jika sudah ada URL Google Sheets, coba sinkronisasi otomatis di latar belakang
+            if (gasUrl) {
+                syncFromGoogleSheets(true);
+            }
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem(STORAGE_KEYS.VITALS, JSON.stringify(vitalsData));
+            localStorage.setItem(STORAGE_KEYS.MEDS, JSON.stringify(medsData));
+        }
+
+        // ==================== NAVIGATION & UI HELPERS ====================
+        function switchTab(tabName) {
+            const tabs = ['dashboard', 'vitals', 'meds', 'settings'];
+            tabs.forEach(t => {
+                document.getElementById(`view-${t}`).classList.add('hidden');
+                const btn = document.getElementById(`tab-${t}`);
+                btn.classList.remove('tab-active');
+                btn.classList.add('text-slate-500');
+            });
+
+            document.getElementById(`view-${tabName}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-${tabName}`);
+            activeBtn.classList.add('tab-active');
+            activeBtn.classList.remove('text-slate-500');
+
+            if (tabName === 'dashboard') {
+                renderCharts();
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const styles = {
+                success: 'bg-slate-900 text-white border-l-4 border-emerald-400',
+                error: 'bg-slate-900 text-white border-l-4 border-rose-500',
+                info: 'bg-slate-900 text-white border-l-4 border-teal-400',
+                warning: 'bg-slate-900 text-white border-l-4 border-amber-400'
+            };
+
+            const icons = {
+                success: '<i class="fa-solid fa-circle-check text-emerald-400"></i>',
+                error: '<i class="fa-solid fa-circle-exclamation text-rose-400"></i>',
+                info: '<i class="fa-solid fa-circle-info text-teal-400"></i>',
+                warning: '<i class="fa-solid fa-triangle-exclamation text-amber-400"></i>'
+            };
+
+            toast.className = `${styles[type] || styles.info} px-4 py-3 rounded-xl shadow-lg text-xs sm:text-sm flex items-center gap-3 pointer-events-auto transition-all duration-300 transform translate-y-0 opacity-100`;
+            toast.innerHTML = `${icons[type] || icons.info} <span class="flex-1">${message}</span>`;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        function formatDisplayDate(isoStr) {
+            if (!isoStr) return '-';
+            try {
+                const d = new Date(isoStr);
+                if (isNaN(d.getTime())) return isoStr;
+                return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) + 
+                       ' • ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            } catch (e) {
+                return isoStr;
+            }
+        }
+
+        // ==================== HEALTH CLASSIFICATION LOGIC ====================
+        function getBPStatus(sys, dia) {
+            sys = Number(sys); dia = Number(dia);
+            if (!sys || !dia) return { label: '-', color: 'bg-slate-100 text-slate-600', isHigh: false };
+            if (sys >= 140 || dia >= 90) return { label: 'Hipertensi', color: 'bg-rose-100 text-rose-700', isHigh: true };
+            if ((sys >= 120 && sys <= 139) || (dia >= 80 && dia <= 89)) return { label: 'Waspada / Pra', color: 'bg-amber-100 text-amber-700', isHigh: false };
+            if (sys < 90 || dia < 60) return { label: 'Rendah', color: 'bg-blue-100 text-blue-700', isHigh: false };
+            return { label: 'Normal', color: 'bg-emerald-100 text-emerald-700', isHigh: false };
+        }
+
+        function getSugarStatus(val, type) {
+            val = Number(val);
+            if (!val) return { label: '-', color: 'bg-slate-100 text-slate-600', isHigh: false };
+            if (type === 'Puasa') {
+                if (val >= 126) return { label: 'Tinggi (Diabetes)', color: 'bg-rose-100 text-rose-700', isHigh: true };
+                if (val >= 100) return { label: 'Prediabetes', color: 'bg-amber-100 text-amber-700', isHigh: false };
+                if (val < 70) return { label: 'Rendah (Hipo)', color: 'bg-blue-100 text-blue-700', isHigh: false };
+                return { label: 'Normal', color: 'bg-emerald-100 text-emerald-700', isHigh: false };
+            } else {
+                if (val >= 200) return { label: 'Tinggi', color: 'bg-rose-100 text-rose-700', isHigh: true };
+                if (val >= 140) return { label: 'Waspada', color: 'bg-amber-100 text-amber-700', isHigh: false };
+                if (val < 70) return { label: 'Rendah', color: 'bg-blue-100 text-blue-700', isHigh: false };
+                return { label: 'Normal', color: 'bg-emerald-100 text-emerald-700', isHigh: false };
+            }
+        }
+
+        // ==================== FORM SUBMISSIONS & CRUD ====================
+        async function handleVitalSubmit(e) {
+            e.preventDefault();
+            const sys = document.getElementById('v-systolic').value;
+            const dia = document.getElementById('v-diastolic').value;
+            const sugar = document.getElementById('v-sugar').value;
+            const hr = document.getElementById('v-hr').value;
+            const weight = document.getElementById('v-weight').value;
+            const temp = document.getElementById('v-temp').value;
+
+            if (!sys && !dia && !sugar && !hr && !weight && !temp) {
+                showToast('Isi minimal satu parameter kesehatan (misal: tensi atau gula darah).', 'warning');
+                return;
+            }
+
+            const newRecord = {
+                id: 'v_' + Date.now(),
+                datetime: document.getElementById('v-datetime').value,
+                systolic: sys || '',
+                diastolic: dia || '',
+                sugar: sugar || '',
+                sugarType: document.getElementById('v-sugar-type').value,
+                hr: hr || '',
+                weight: weight || '',
+                temp: temp || '',
+                notes: document.getElementById('v-notes').value.trim()
+            };
+
+            vitalsData.unshift(newRecord);
+            // Urutkan berdasarkan waktu terbaru
+            vitalsData.sort((a, b) => new Date(b.datetime) - new Date(a.datetime));
+            saveToLocalStorage();
+            refreshAllViews();
+
+            // Reset input angka & catatan
+            document.getElementById('v-systolic').value = '';
+            document.getElementById('v-diastolic').value = '';
+            document.getElementById('v-sugar').value = '';
+            document.getElementById('v-hr').value = '';
+            document.getElementById('v-weight').value = '';
+            document.getElementById('v-temp').value = '';
+            document.getElementById('v-notes').value = '';
+            document.getElementById('v-datetime').value = getCurrentLocalDateTime();
+
+            if (gasUrl) {
+                showToast('Menyimpan ke Google Spreadsheet...', 'info');
+                await sendToGoogleSheets({ action: 'add', type: 'vital', data: newRecord });
+            } else {
+                showToast('Catatan kesehatan tersimpan di perangkat!', 'success');
+            }
+        }
+
+        async function handleMedSubmit(e) {
+            e.preventDefault();
+            const statusEl = document.querySelector('input[name="m-status"]:checked');
+            
+            const newMed = {
+                id: 'm_' + Date.now(),
+                datetime: document.getElementById('m-datetime').value,
+                name: document.getElementById('m-name').value.trim(),
+                dosage: document.getElementById('m-dosage').value.trim(),
+                timing: document.getElementById('m-timing').value,
+                status: statusEl ? statusEl.value : 'Sudah Diminum',
+                notes: document.getElementById('m-notes').value.trim()
+            };
+
+            medsData.unshift(newMed);
+            medsData.sort((a, b) => new Date(b.datetime) - new Date(a.datetime));
+            saveToLocalStorage();
+            refreshAllViews();
+
+            document.getElementById('m-name').value = '';
+            document.getElementById('m-dosage').value = '';
+            document.getElementById('m-notes').value = '';
+            document.getElementById('m-datetime').value = getCurrentLocalDateTime();
+
+            if (gasUrl) {
+                showToast('Menyimpan history obat ke Google Spreadsheet...', 'info');
+                await sendToGoogleSheets({ action: 'add', type: 'med', data: newMed });
+            } else {
+                showToast('History minum obat berhasil dicatat!', 'success');
+            }
+        }
+
+        // Custom Modal Confirm Delete
+        let pendingDeleteAction = null;
+        function confirmDelete(type, id) {
+            pendingDeleteAction = { type, id };
+            const modal = document.getElementById('confirm-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeConfirmModal() {
+            const modal = document.getElementById('confirm-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            pendingDeleteAction = null;
+        }
+
+        document.getElementById('confirm-yes-btn').addEventListener('click', async () => {
+            if (!pendingDeleteAction) return;
+            const { type, id } = pendingDeleteAction;
+            closeConfirmModal();
+
+            if (type === 'vital') {
+                vitalsData = vitalsData.filter(item => String(item.id) !== String(id));
+            } else {
+                medsData = medsData.filter(item => String(item.id) !== String(id));
+            }
+
+            saveToLocalStorage();
+            refreshAllViews();
+
+            if (gasUrl) {
+                await sendToGoogleSheets({ action: 'delete', type, id });
+            } else {
+                showToast('Data berhasil dihapus.', 'info');
+            }
+        });
+
+        // ==================== RENDERING VIEWS ====================
+        function refreshAllViews() {
+            renderDashboardSummary();
+            renderVitalsTable();
+            renderMedsTable();
+            renderCharts();
+        }
+
+        function renderDashboardSummary() {
+            // 1. Tensi Terakhir
+            const latestBP = vitalsData.find(v => v.systolic && v.diastolic);
+            if (latestBP) {
+                document.getElementById('dash-bp-val').textContent = `${latestBP.systolic}/${latestBP.diastolic}`;
+                document.getElementById('dash-bp-date').textContent = formatDisplayDate(latestBP.datetime);
+                const status = getBPStatus(latestBP.systolic, latestBP.diastolic);
+                const badge = document.getElementById('dash-bp-badge');
+                badge.textContent = status.label;
+                badge.className = `px-2.5 py-1 text-xs font-semibold rounded-full ${status.color}`;
+            }
+
+            // 2. Gula Darah Terakhir
+            const latestSugar = vitalsData.find(v => v.sugar);
+            if (latestSugar) {
+                document.getElementById('dash-sugar-val').textContent = latestSugar.sugar;
+                document.getElementById('dash-sugar-type').textContent = `${latestSugar.sugarType || 'Cek'} • ${formatDisplayDate(latestSugar.datetime)}`;
+                const status = getSugarStatus(latestSugar.sugar, latestSugar.sugarType);
+                const badge = document.getElementById('dash-sugar-badge');
+                badge.textContent = status.label;
+                badge.className = `px-2.5 py-1 text-xs font-semibold rounded-full ${status.color}`;
+            }
+
+            // 3. Berat Badan, Nadi, Suhu
+            const latestWeight = vitalsData.find(v => v.weight);
+            const latestHR = vitalsData.find(v => v.hr);
+            const latestTemp = vitalsData.find(v => v.temp);
+
+            document.getElementById('dash-weight-val').textContent = latestWeight ? latestWeight.weight : '--';
+            document.getElementById('dash-hr-val').textContent = latestHR ? `${latestHR.hr} bpm` : '-- bpm';
+            document.getElementById('dash-temp-val').textContent = latestTemp ? `${latestTemp.temp} °C` : '-- °C';
+            if (latestWeight) {
+                document.getElementById('dash-weight-date').textContent = formatDisplayDate(latestWeight.datetime);
+            }
+
+            // 4. Obat Hari Ini
+            const todayStr = new Date().toISOString().slice(0, 10);
+            const todaysMeds = medsData.filter(m => m.datetime && m.datetime.startsWith(todayStr) && m.status === 'Sudah Diminum');
+            document.getElementById('dash-med-count').textContent = todaysMeds.length;
+            if (medsData.length > 0) {
+                document.getElementById('dash-med-last').textContent = `Terakhir: ${medsData[0].name} (${medsData[0].dosage})`;
+            }
+
+            // 5. Recent Meds List
+            const recentMedsContainer = document.getElementById('dash-recent-meds');
+            if (medsData.length === 0) {
+                recentMedsContainer.innerHTML = `<p class="text-xs text-slate-400 py-4 text-center">Belum ada riwayat minum obat.</p>`;
+            } else {
+                recentMedsContainer.innerHTML = medsData.slice(0, 4).map(m => `
+                    <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="w-9 h-9 rounded-lg ${m.status === 'Sudah Diminum' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'} flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid ${m.status === 'Sudah Diminum' ? 'fa-check' : 'fa-clock'}"></i>
+                            </div>
+                            <div class="truncate">
+                                <p class="text-sm font-semibold text-slate-800 truncate">${m.name} <span class="text-xs font-normal text-slate-500">(${m.dosage})</span></p>
+                                <p class="text-xs text-slate-400">${formatDisplayDate(m.datetime)} • ${m.timing}</p>
+                            </div>
+                        </div>
+                        <span class="px-2 py-0.5 text-[11px] font-semibold rounded-md flex-shrink-0 ${m.status === 'Sudah Diminum' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}">
+                            ${m.status}
+                        </span>
+                    </div>
+                `).join('');
+            }
+
+            // 6. Recent Vitals List
+            const recentVitalsContainer = document.getElementById('dash-recent-vitals');
+            if (vitalsData.length === 0) {
+                recentVitalsContainer.innerHTML = `<p class="text-xs text-slate-400 py-4 text-center">Belum ada catatan pemeriksaan.</p>`;
+            } else {
+                recentVitalsContainer.innerHTML = vitalsData.slice(0, 4).map(v => `
+                    <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                ${v.systolic ? `<span class="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded">TD: ${v.systolic}/${v.diastolic}</span>` : ''}
+                                ${v.sugar ? `<span class="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded">Gula: ${v.sugar} (${v.sugarType})</span>` : ''}
+                                ${v.weight ? `<span class="text-xs font-medium text-slate-600 bg-slate-200/60 px-2 py-0.5 rounded">BB: ${v.weight}kg</span>` : ''}
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1 truncate">${v.notes || 'Tidak ada catatan gejala'}</p>
+                        </div>
+                        <span class="text-[11px] text-slate-400 flex-shrink-0 ml-2">${formatDisplayDate(v.datetime).split('•')[0]}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function renderVitalsTable() {
+            const tbody = document.getElementById('vitals-table-body');
+            const search = document.getElementById('search-vitals').value.toLowerCase();
+            const filter = document.getElementById('filter-vitals').value;
+
+            const filtered = vitalsData.filter(v => {
+                const matchText = (v.notes || '').toLowerCase().includes(search) || 
+                                  (v.datetime || '').toLowerCase().includes(search) ||
+                                  (v.sugarType || '').toLowerCase().includes(search);
+                if (!matchText) return false;
+
+                const bpHigh = getBPStatus(v.systolic, v.diastolic).isHigh;
+                const sugarHigh = getSugarStatus(v.sugar, v.sugarType).isHigh;
+
+                if (filter === 'high') return bpHigh || sugarHigh;
+                if (filter === 'normal') return !bpHigh && !sugarHigh;
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400 text-sm">Tidak ada data catatan kesehatan yang sesuai.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(v => {
+                const bpStat = getBPStatus(v.systolic, v.diastolic);
+                const sugStat = getSugarStatus(v.sugar, v.sugarType);
+                return `
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="py-3 px-3 text-xs font-medium text-slate-700 whitespace-nowrap">${formatDisplayDate(v.datetime)}</td>
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            ${v.systolic && v.diastolic ? `
+                                <div class="font-bold text-slate-800">${v.systolic}/${v.diastolic}</div>
+                                <span class="inline-block px-2 py-0.5 text-[10px] font-semibold rounded-full ${bpStat.color}">${bpStat.label}</span>
+                            ` : '<span class="text-slate-300">-</span>'}
+                        </td>
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            ${v.sugar ? `
+                                <div class="font-bold text-slate-800">${v.sugar} <span class="text-xs font-normal text-slate-400">mg/dL</span></div>
+                                <span class="inline-block px-2 py-0.5 text-[10px] font-semibold rounded-full ${sugStat.color}">${v.sugarType} • ${sugStat.label}</span>
+                            ` : '<span class="text-slate-300">-</span>'}
+                        </td>
+                        <td class="py-3 px-3 text-xs text-slate-600 whitespace-nowrap">
+                            ${v.hr ? `<div><i class="fa-solid fa-heart text-rose-400 w-4"></i> ${v.hr} bpm</div>` : ''}
+                            ${v.weight ? `<div><i class="fa-solid fa-weight-scale text-blue-400 w-4"></i> ${v.weight} kg</div>` : ''}
+                            ${v.temp ? `<div><i class="fa-solid fa-temperature-half text-amber-400 w-4"></i> ${v.temp} °C</div>` : ''}
+                            ${!v.hr && !v.weight && !v.temp ? '<span class="text-slate-300">-</span>' : ''}
+                        </td>
+                        <td class="py-3 px-3 text-xs text-slate-600 max-w-xs truncate" title="${v.notes || ''}">${v.notes || '-'}</td>
+                        <td class="py-3 px-3 text-right">
+                            <button onclick="confirmDelete('vital', '${v.id}')" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Hapus">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderMedsTable() {
+            const tbody = document.getElementById('meds-table-body');
+            const search = document.getElementById('search-meds').value.toLowerCase();
+            const filter = document.getElementById('filter-meds').value;
+
+            const filtered = medsData.filter(m => {
+                const matchText = (m.name || '').toLowerCase().includes(search) || 
+                                  (m.notes || '').toLowerCase().includes(search) ||
+                                  (m.timing || '').toLowerCase().includes(search);
+                if (!matchText) return false;
+                if (filter !== 'all' && m.status !== filter) return false;
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400 text-sm">Belum ada history minum obat yang sesuai.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(m => `
+                <tr class="hover:bg-slate-50/80 transition">
+                    <td class="py-3 px-3 text-xs font-medium text-slate-700 whitespace-nowrap">${formatDisplayDate(m.datetime)}</td>
+                    <td class="py-3 px-3 font-semibold text-slate-800">${m.name}</td>
+                    <td class="py-3 px-3 text-xs text-slate-600">
+                        <span class="font-semibold text-slate-700">${m.dosage}</span>
+                        <div class="text-slate-400">${m.timing}</div>
+                    </td>
+                    <td class="py-3 px-3 whitespace-nowrap">
+                        <span class="px-2.5 py-1 text-xs font-semibold rounded-full ${m.status === 'Sudah Diminum' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">
+                            <i class="fa-solid ${m.status === 'Sudah Diminum' ? 'fa-check' : 'fa-xmark'} mr-1"></i>${m.status}
+                        </span>
+                    </td>
+                    <td class="py-3 px-3 text-xs text-slate-600 max-w-xs truncate" title="${m.notes || ''}">${m.notes || '-'}</td>
+                    <td class="py-3 px-3 text-right">
+                        <button onclick="confirmDelete('med', '${m.id}')" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Hapus">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // ==================== CHARTS (CHART.JS) ====================
+        function renderCharts() {
+            // Ambil 10 data terakhir yang memiliki nilai, lalu balik urutannya dari lama ke baru
+            const bpRecords = vitalsData.filter(v => v.systolic && v.diastolic).slice(0, 10).reverse();
+            const sugarRecords = vitalsData.filter(v => v.sugar).slice(0, 10).reverse();
+
+            // 1. Blood Pressure Chart
+            const bpCtx = document.getElementById('bpChart').getContext('2d');
+            if (bpChartInstance) bpChartInstance.destroy();
+
+            bpChartInstance = new Chart(bpCtx, {
+                type: 'line',
+                data: {
+                    labels: bpRecords.map(r => formatDisplayDate(r.datetime).split('•')[0].trim()),
+                    datasets: [
+                        {
+                            label: 'Sistolik (Atas)',
+                            data: bpRecords.map(r => Number(r.systolic)),
+                            borderColor: '#e11d48',
+                            backgroundColor: 'rgba(225, 29, 72, 0.1)',
+                            borderWidth: 2.5,
+                            tension: 0.35,
+                            fill: true,
+                            pointRadius: 4
+                        },
+                        {
+                            label: 'Diastolik (Bawah)',
+                            data: bpRecords.map(r => Number(r.diastolic)),
+                            borderColor: '#0d9488',
+                            backgroundColor: 'rgba(13, 148, 136, 0.08)',
+                            borderWidth: 2.5,
+                            tension: 0.35,
+                            fill: true,
+                            pointRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+                    scales: {
+                        y: { suggestedMin: 60, suggestedMax: 160, grid: { color: '#f1f5f9' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // 2. Blood Sugar Chart
+            const sugarCtx = document.getElementById('sugarChart').getContext('2d');
+            if (sugarChartInstance) sugarChartInstance.destroy();
+
+            sugarChartInstance = new Chart(sugarCtx, {
+                type: 'line',
+                data: {
+                    labels: sugarRecords.map(r => formatDisplayDate(r.datetime).split('•')[0].trim()),
+                    datasets: [
+                        {
+                            label: 'Gula Darah (mg/dL)',
+                            data: sugarRecords.map(r => Number(r.sugar)),
+                            borderColor: '#d97706',
+                            backgroundColor: 'rgba(217, 119, 6, 0.12)',
+                            borderWidth: 2.5,
+                            tension: 0.35,
+                            fill: true,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#d97706'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+                    scales: {
+                        y: { suggestedMin: 70, suggestedMax: 180, grid: { color: '#f1f5f9' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // ==================== GOOGLE SPREADSHEET INTEGRATION ====================
+        function updateConnectionUI() {
+            const badge = document.getElementById('connection-badge');
+            const dot = document.getElementById('connection-dot');
+            const text = document.getElementById('connection-text');
+
+            if (gasUrl && gasUrl.startsWith('https://script.google.com/')) {
+                badge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-pointer';
+                dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+                text.textContent = 'Terhubung Google Sheets';
+            } else {
+                badge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 cursor-pointer';
+                dot.className = 'w-2 h-2 rounded-full bg-amber-500 animate-pulse';
+                text.textContent = 'Mode Lokal (Demo)';
+            }
+        }
+
+        function saveGasUrl() {
+            const inputVal = document.getElementById('gas-url-input').value.trim();
+            if (inputVal && !inputVal.startsWith('https://script.google.com/')) {
+                showToast('URL tidak valid. Pastikan diawali https://script.google.com/...', 'error');
+                return;
+            }
+            gasUrl = inputVal;
+            localStorage.setItem(STORAGE_KEYS.GAS_URL, gasUrl);
+            updateConnectionUI();
+
+            if (gasUrl) {
+                showToast('URL disimpan! Mengambil data dari Google Sheets...', 'info');
+                syncFromGoogleSheets();
+            } else {
+                showToast('Beralih ke Mode Penyimpanan Lokal.', 'info');
+            }
+        }
+
+        async function testGasConnection() {
+            const urlToTest = document.getElementById('gas-url-input').value.trim();
+            if (!urlToTest) {
+                showToast('Masukkan URL Google Apps Script terlebih dahulu.', 'warning');
+                return;
+            }
+            showToast('Menguji koneksi ke Google Spreadsheet...', 'info');
+            try {
+                const response = await fetch(urlToTest);
+                const data = await response.json();
+                if (data && data.status === 'success') {
+                    showToast(`Koneksi Berhasil! Ditemukan ${data.vitals.length} catatan vital & ${data.meds.length} log obat.`, 'success');
+                } else {
+                    showToast('Respon tidak dikenali. Periksa kembali kode Apps Script Anda.', 'error');
+                }
+            } catch (err) {
+                showToast('Gagal terhubung. Pastikan akses Web App diatur ke "Anyone / Siapa saja".', 'error');
+            }
+        }
+
+        async function syncFromGoogleSheets(silent = false) {
+            if (!gasUrl) {
+                if (!silent) showToast('URL Google Sheets belum diatur. Buka tab Koneksi Google Sheets.', 'warning');
+                return;
+            }
+
+            const syncIcon = document.getElementById('sync-icon');
+            syncIcon.classList.add('fa-spin');
+
+            try {
+                const response = await fetch(gasUrl);
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    // Jika spreadsheet masih kosong tapi lokal punya data, tawarkan/pertahankan
+                    if (result.vitals.length === 0 && result.meds.length === 0 && (vitalsData.length > 0 || medsData.length > 0)) {
+                        if (!silent) showToast('Spreadsheet masih kosong. Klik "Upload Data Lokal ke Sheets" untuk migrasi data.', 'info');
+                    } else {
+                        vitalsData = result.vitals.sort((a, b) => new Date(b.datetime) - new Date(a.datetime));
+                        medsData = result.meds.sort((a, b) => new Date(b.datetime) - new Date(a.datetime));
+                        saveToLocalStorage();
+                        refreshAllViews();
+                        if (!silent) showToast('Data berhasil disinkronkan dari Google Spreadsheet!', 'success');
+                    }
+                } else {
+                    throw new Error('Invalid status');
+                }
+            } catch (error) {
+                if (!silent) showToast('Gagal sinkronisasi dengan Google Sheets. Menggunakan cache lokal.', 'error');
+            } finally {
+                syncIcon.classList.remove('fa-spin');
+            }
+        }
+
+        async function sendToGoogleSheets(payload) {
+            if (!gasUrl) return;
+            try {
+                // Menggunakan text/plain agar menghindari CORS preflight OPTIONS di Google Apps Script
+                const response = await fetch(gasUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                const resJson = await response.json();
+                if (resJson.status === 'success') {
+                    showToast('Tersinkronisasi dengan Google Spreadsheet!', 'success');
+                } else {
+                    showToast('Tersimpan lokal, namun gagal update ke Sheets.', 'warning');
+                }
+            } catch (e) {
+                showToast('Tersimpan lokal (Offline). Akan sinkron saat online.', 'warning');
+            }
+        }
+
+        async function pushLocalToSheets() {
+            if (!gasUrl) {
+                showToast('Simpan URL Google Apps Script terlebih dahulu.', 'warning');
+                return;
+            }
+            showToast('Mengunggah seluruh data lokal ke Google Spreadsheet...', 'info');
+            await sendToGoogleSheets({
+                action: 'sync_all',
+                vitals: vitalsData,
+                meds: medsData
+            });
+        }
+
+        function resetDemoData() {
+            vitalsData = [...SAMPLE_VITALS];
+            medsData = [...SAMPLE_MEDS];
+            saveToLocalStorage();
+            refreshAllViews();
+            showToast('Data demo berhasil dimuat ulang!', 'success');
+        }
+
+        // ==================== UTILITIES: COPY CODE & EXPORT CSV ====================
+        function copyAppsScript() {
+            const codeText = document.getElementById('apps-script-code').innerText;
+            const textarea = document.createElement('textarea');
+            textarea.value = codeText;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            const btnText = document.getElementById('copy-btn-text');
+            btnText.textContent = 'Tersalin!';
+            showToast('Kode Google Apps Script disalin ke clipboard!', 'success');
+            setTimeout(() => { btnText.textContent = 'Salin Kode'; }, 2500);
+        }
+
+        function exportAllCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "=== CATATAN KESEHATAN & VITAL ===\n";
+            csvContent += "ID,Waktu,Sistolik,Diastolik,Gula_Darah,Tipe_Gula,Nadi,Berat_Badan,Suhu,Catatan\n";
+            vitalsData.forEach(v => {
+                csvContent += `"${v.id}","${v.datetime}","${v.systolic}","${v.diastolic}","${v.sugar}","${v.sugarType}","${v.hr}","${v.weight}","${v.temp}","${(v.notes || '').replace(/"/g, '""')}"\n`;
+            });
+
+            csvContent += "\n=== HISTORY MINUM OBAT ===\n";
+            csvContent += "ID,Waktu,Nama_Obat,Dosis,Aturan_Minum,Status,Catatan\n";
+            medsData.forEach(m => {
+                csvContent += `"${m.id}","${m.datetime}","${m.name}","${m.dosage}","${m.timing}","${m.status}","${(m.notes || '').replace(/"/g, '""')}"\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Laporan_Kesehatan_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('File CSV berhasil diunduh!', 'success');
+        }
+    </script>
+</body>
+</html>
