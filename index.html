@@ -46,9 +46,9 @@
       .field {
         width: 100%;
         border: 1px solid #e2e8f0;
-        background: #f8fafc;
+        background: #ffffff;
         border-radius: 10px;
-        padding: 10px 12px;
+        padding: 8px 11px;
         font-size: 13px;
         outline: none;
       }
@@ -58,10 +58,19 @@
       }
       .btn {
         border-radius: 10px;
-        padding: 10px 14px;
-        font-size: 13px;
+        padding: 9px 13px;
+        font-size: 12px;
         font-weight: 700;
         transition: 0.2s;
+        cursor: pointer;
+      }
+      .btn-sm {
+        border-radius: 8px;
+        padding: 5px 9px;
+        font-size: 11px;
+        font-weight: 600;
+        transition: 0.2s;
+        cursor: pointer;
       }
       .btn-primary {
         background: #0d9488;
@@ -70,13 +79,56 @@
       .btn-primary:hover {
         background: #0f766e;
       }
+      .btn-amber {
+        background: #d97706;
+        color: white;
+      }
+      .btn-amber:hover {
+        background: #b45309;
+      }
       .btn-light {
         background: #f1f5f9;
         color: #334155;
       }
+      .btn-light:hover {
+        background: #e2e8f0;
+      }
+      .btn-teal-soft {
+        background: #ccfbf1;
+        color: #0f766e;
+      }
+      .btn-teal-soft:hover {
+        background: #99f6e4;
+      }
+      .btn-indigo-soft {
+        background: #e0e7ff;
+        color: #3730a3;
+      }
+      .btn-indigo-soft:hover {
+        background: #c7d2fe;
+      }
       .btn-danger {
         background: #fff1f2;
         color: #be123c;
+      }
+      .btn-danger:hover {
+        background: #ffe4e6;
+      }
+      .pill-btn {
+        padding: 6px 11px;
+        border-radius: 9999px;
+        font-size: 11px;
+        font-weight: 600;
+        background: #f1f5f9;
+        color: #475569;
+        transition: 0.15s;
+      }
+      .pill-btn:hover {
+        background: #e2e8f0;
+      }
+      .pill-active {
+        background: #0d9488 !important;
+        color: #ffffff !important;
       }
       .table-wrap {
         overflow: auto;
@@ -104,6 +156,10 @@
     </style>
   </head>
   <body class="bg-slate-50 text-slate-800 min-h-screen">
+    <!-- Global Datalists untuk Autocomplete Nama Obat & Satuan/Dosis -->
+    <datalist id="med-name-datalist"></datalist>
+    <datalist id="med-dose-datalist"></datalist>
+
     <div id="toast-area" class="fixed right-4 top-4 z-[100] space-y-2"></div>
     <div
       id="loading"
@@ -142,8 +198,8 @@
             >
               <span
                 class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1"
-              ></span
-              ><span id="connection-label">Belum terhubung</span>
+              ></span>
+              <span id="connection-label">Belum terhubung</span>
             </button>
             <button class="btn btn-light" onclick="syncData()">
               <i class="fa-solid fa-rotate mr-1"></i
@@ -181,6 +237,7 @@
     </header>
 
     <main class="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
+      <!-- DASHBOARD -->
       <section id="view-dashboard" class="space-y-6">
         <div
           class="rounded-2xl bg-gradient-to-r from-teal-700 to-emerald-600 text-white p-6 flex flex-wrap justify-between items-center gap-4"
@@ -198,8 +255,9 @@
               class="btn bg-white text-teal-700"
               onclick="openTab('vitals')"
             >
-              <i class="fa-solid fa-plus mr-1"></i>Catat Vital</button
-            ><button
+              <i class="fa-solid fa-plus mr-1"></i>Catat Vital
+            </button>
+            <button
               class="btn bg-teal-900/40 text-white"
               onclick="openTab('meds')"
             >
@@ -263,20 +321,84 @@
         </div>
       </section>
 
+      <!-- CATATAN VITAL (INPUT TERPISAH ATAU SEMUA) -->
       <section id="view-vitals" class="hidden-view grid lg:grid-cols-3 gap-5">
-        <div class="panel h-fit">
-          <h2 class="font-bold text-lg mb-4">Tambah Catatan Vital</h2>
+        <div class="panel h-fit space-y-4">
+          <div>
+            <h2 class="font-bold text-lg">Tambah Catatan Vital</h2>
+            <p class="text-xs text-slate-500 mt-0.5">
+              Pilih kategori untuk input terpisah atau isi sekaligus
+            </p>
+          </div>
+
+          <div class="flex flex-wrap gap-1.5" id="vital-mode-pills">
+            <button
+              type="button"
+              class="pill-btn pill-active"
+              data-mode="all"
+              onclick="setVitalMode('all')"
+            >
+              Semua
+            </button>
+            <button
+              type="button"
+              class="pill-btn"
+              data-mode="bp"
+              onclick="setVitalMode('bp')"
+            >
+              <i class="fa-solid fa-heart-pulse mr-1"></i>Tensi
+            </button>
+            <button
+              type="button"
+              class="pill-btn"
+              data-mode="sugar"
+              onclick="setVitalMode('sugar')"
+            >
+              <i class="fa-solid fa-droplet mr-1"></i>Gula Darah
+            </button>
+            <button
+              type="button"
+              class="pill-btn"
+              data-mode="hr"
+              onclick="setVitalMode('hr')"
+            >
+              <i class="fa-solid fa-wave-square mr-1"></i>Nadi
+            </button>
+            <button
+              type="button"
+              class="pill-btn"
+              data-mode="weight"
+              onclick="setVitalMode('weight')"
+            >
+              <i class="fa-solid fa-weight-scale mr-1"></i>Berat
+            </button>
+            <button
+              type="button"
+              class="pill-btn"
+              data-mode="temp"
+              onclick="setVitalMode('temp')"
+            >
+              <i class="fa-solid fa-temperature-half mr-1"></i>Suhu
+            </button>
+          </div>
+
           <form id="vital-form" class="space-y-3">
             <label class="block text-xs font-semibold"
-              >Tanggal & waktu<input
-                class="field mt-1"
+              >Tanggal & waktu
+              <input
+                class="field mt-1 bg-slate-50"
                 id="v-datetime"
                 type="datetime-local"
                 required
-            /></label>
-            <div class="grid grid-cols-2 gap-2">
-              <label class="text-xs font-semibold"
-                >Sistolik<input
+              />
+            </label>
+
+            <div
+              id="vgroup-bp"
+              class="vital-group grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-rose-50/50 border border-rose-100"
+            >
+              <label class="text-xs font-semibold text-rose-900"
+                >Sistolik (mmHg)<input
                   class="field mt-1"
                   id="v-sys"
                   type="number"
@@ -284,8 +406,8 @@
                   max="300"
                   placeholder="120"
               /></label>
-              <label class="text-xs font-semibold"
-                >Diastolik<input
+              <label class="text-xs font-semibold text-rose-900"
+                >Diastolik (mmHg)<input
                   class="field mt-1"
                   id="v-dia"
                   type="number"
@@ -293,8 +415,14 @@
                   max="200"
                   placeholder="80"
               /></label>
-              <label class="text-xs font-semibold"
-                >Gula darah<input
+            </div>
+
+            <div
+              id="vgroup-sugar"
+              class="vital-group grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-amber-50/50 border border-amber-100"
+            >
+              <label class="text-xs font-semibold text-amber-900"
+                >Gula darah (mg/dL)<input
                   class="field mt-1"
                   id="v-sugar"
                   type="number"
@@ -302,47 +430,62 @@
                   max="900"
                   placeholder="95"
               /></label>
-              <label class="text-xs font-semibold"
-                >Tipe gula<select class="field mt-1" id="v-sugar-type">
+              <label class="text-xs font-semibold text-amber-900"
+                >Tipe gula
+                <select class="field mt-1" id="v-sugar-type">
                   <option>Puasa</option>
                   <option>Sewaktu</option>
                   <option>2 Jam PP</option>
                   <option>Sebelum Tidur</option>
-                </select></label
-              >
-              <label class="text-xs font-semibold"
+                </select>
+              </label>
+            </div>
+
+            <div id="vgroup-hr" class="vital-group">
+              <label class="block text-xs font-semibold"
                 >Nadi (bpm)<input
-                  class="field mt-1"
+                  class="field mt-1 bg-slate-50"
                   id="v-hr"
                   type="number"
                   min="30"
                   max="250"
+                  placeholder="75"
               /></label>
-              <label class="text-xs font-semibold"
-                >Berat (kg)<input
-                  class="field mt-1"
+            </div>
+
+            <div id="vgroup-weight" class="vital-group">
+              <label class="block text-xs font-semibold"
+                >Berat Badan (kg)<input
+                  class="field mt-1 bg-slate-50"
                   id="v-weight"
                   type="number"
                   step="0.1"
                   min="10"
                   max="300"
+                  placeholder="65.5"
               /></label>
-              <label class="text-xs font-semibold col-span-2"
-                >Suhu (°C)<input
-                  class="field mt-1"
+            </div>
+
+            <div id="vgroup-temp" class="vital-group">
+              <label class="block text-xs font-semibold"
+                >Suhu Tubuh (°C)<input
+                  class="field mt-1 bg-slate-50"
                   id="v-temp"
                   type="number"
                   step="0.1"
                   min="30"
                   max="45"
+                  placeholder="36.5"
               /></label>
             </div>
+
             <label class="block text-xs font-semibold"
-              >Catatan<textarea
-                class="field mt-1"
+              >Catatan
+              <textarea
+                class="field mt-1 bg-slate-50"
                 id="v-notes"
-                rows="3"
-                placeholder="Catatan gejala atau kondisi"
+                rows="2"
+                placeholder="Catatan gejala atau kondisi (opsional)"
               ></textarea>
             </label>
             <button class="btn btn-primary w-full" type="submit">
@@ -350,6 +493,7 @@
             </button>
           </form>
         </div>
+
         <div class="panel lg:col-span-2">
           <div class="flex flex-wrap justify-between gap-2 mb-4">
             <div>
@@ -360,7 +504,7 @@
             </div>
             <input
               id="v-search"
-              class="field max-w-xs"
+              class="field max-w-xs bg-slate-50"
               placeholder="Cari catatan..."
               oninput="renderTables()"
             />
@@ -383,91 +527,82 @@
         </div>
       </section>
 
-      <section id="view-meds" class="hidden-view grid lg:grid-cols-3 gap-5">
-        <div class="panel h-fit">
-          <h2 class="font-bold text-lg mb-4">Catat Konsumsi Obat</h2>
+      <!-- RIWAYAT OBAT (MULTI-SESI, BANYAK OBAT PER SESI, DATALIST, COPY, & EDIT) -->
+      <section id="view-meds" class="hidden-view grid lg:grid-cols-12 gap-5">
+        <div class="panel lg:col-span-5 h-fit space-y-4">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <h2 id="med-form-title" class="font-bold text-lg">
+                Catat Konsumsi Obat
+              </h2>
+              <p id="med-form-subtitle" class="text-xs text-slate-500">
+                Ketik atau pilih dari riwayat obat & daftar satuan dosis
+              </p>
+            </div>
+            <button
+              type="button"
+              id="btn-cancel-med-edit"
+              onclick="resetMedForm()"
+              class="hidden btn-sm btn-light shrink-0"
+            >
+              <i class="fa-solid fa-xmark mr-1"></i>Batal Edit
+            </button>
+          </div>
+
           <form id="med-form" class="space-y-3">
-            <label class="block text-xs font-semibold"
-              >Tanggal & waktu<input
-                class="field mt-1"
-                id="m-datetime"
-                type="datetime-local"
-                required
-            /></label>
-            <label class="block text-xs font-semibold"
-              >Nama obat/vitamin<input
-                class="field mt-1"
-                id="m-name"
-                required
-                placeholder="Nama obat"
-            /></label>
-            <label class="block text-xs font-semibold"
-              >Dosis<input
-                class="field mt-1"
-                id="m-dose"
-                required
-                placeholder="1 tablet / 500 mg"
-            /></label>
-            <label class="block text-xs font-semibold"
-              >Aturan minum<select class="field mt-1" id="m-timing">
-                <option>Pagi - Sesudah Makan</option>
-                <option>Pagi - Sebelum Makan</option>
-                <option>Siang - Sesudah Makan</option>
-                <option>Malam - Sesudah Makan</option>
-                <option>Sebelum Tidur</option>
-                <option>Saat Perlu (PRN)</option>
-              </select></label
+            <input type="hidden" id="m-edit-id" value="" />
+
+            <div
+              id="med-sessions-container"
+              class="space-y-4 max-h-[540px] overflow-y-auto pr-1"
+            ></div>
+
+            <button
+              type="button"
+              id="btn-add-session"
+              onclick="addMedSessionCard()"
+              class="btn btn-indigo-soft w-full border border-indigo-200 border-dashed"
             >
-            <label class="block text-xs font-semibold"
-              >Status<select class="field mt-1" id="m-status">
-                <option>Sudah Diminum</option>
-                <option>Belum Diminum</option>
-              </select></label
+              <i class="fa-solid fa-layer-group mr-1.5"></i>+ Tambah Sesi Waktu
+              / Aturan Lain
+            </button>
+
+            <button
+              id="btn-submit-med"
+              class="btn btn-primary w-full py-3 text-sm"
+              type="submit"
             >
-            <label class="block text-xs font-semibold"
-              >Catatan<input
-                class="field mt-1"
-                id="m-notes"
-                placeholder="Catatan tambahan"
-            /></label>
-            <button class="btn btn-primary w-full" type="submit">
-              <i class="fa-solid fa-floppy-disk mr-1"></i>Simpan ke Spreadsheet
+              <i class="fa-solid fa-floppy-disk mr-1.5"></i>Simpan Semua (<span
+                id="total-med-badge"
+                >1</span
+              >
+              Obat)
             </button>
           </form>
         </div>
-        <div class="panel lg:col-span-2">
-          <div class="flex flex-wrap justify-between gap-2 mb-4">
+
+        <div class="panel lg:col-span-7 space-y-4">
+          <div class="flex flex-wrap justify-between items-center gap-2">
             <div>
               <h2 class="font-bold text-lg">History Konsumsi Obat</h2>
               <p class="text-xs text-slate-500">
-                Kelola status dan hapus catatan
+                Obat dalam waktu & aturan yang sama otomatis digabung dalam 1
+                kartu sesi
               </p>
             </div>
             <input
               id="m-search"
-              class="field max-w-xs"
-              placeholder="Cari nama obat..."
+              class="field max-w-xs bg-slate-50"
+              placeholder="Cari nama obat / aturan..."
               oninput="renderTables()"
             />
           </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Waktu</th>
-                  <th>Nama obat</th>
-                  <th>Dosis/Aturan</th>
-                  <th>Status</th>
-                  <th>Catatan</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody id="med-rows"></tbody>
-            </table>
-          </div>
+
+          <div id="med-sessions-list" class="space-y-3"></div>
         </div>
       </section>
 
+      <!-- SETTINGS -->
       <section id="view-settings" class="hidden-view grid lg:grid-cols-2 gap-5">
         <div class="panel space-y-4">
           <div>
@@ -477,16 +612,19 @@
             </p>
           </div>
           <label class="block text-xs font-semibold"
-            >URL Web App<input
+            >URL Web App
+            <input
               id="gas-url"
-              class="field mt-1 font-mono"
+              class="field mt-1 font-mono bg-slate-50"
               type="url"
               placeholder="https://script.google.com/macros/s/.../exec"
-          /></label>
+            />
+          </label>
           <div class="flex flex-wrap gap-2">
             <button class="btn btn-primary" onclick="saveUrlAndSync()">
-              Simpan URL & Sinkronisasi</button
-            ><button class="btn btn-light" onclick="testConnection()">
+              Simpan URL & Sinkronisasi
+            </button>
+            <button class="btn btn-light" onclick="testConnection()">
               Tes Koneksi
             </button>
           </div>
@@ -496,11 +634,6 @@
           >
             Belum ada URL yang dikonfigurasi.
           </div>
-          <p class="text-xs text-amber-700 bg-amber-50 rounded-xl p-3">
-            <b>Penting:</b> data kesehatan termasuk data pribadi. Jangan gunakan
-            deployment publik untuk data medis nyata tanpa autentikasi dan
-            pembatasan akses yang memadai.
-          </p>
         </div>
         <div class="panel space-y-3">
           <h2 class="font-bold text-lg">Langkah konfigurasi</h2>
@@ -517,27 +650,17 @@
             </li>
             <li>Buka <b>Ekstensi → Apps Script</b>.</li>
             <li>
-              Ganti isi <code>Code.gs</code> dengan kode yang disertakan pada
-              file unduhan.
+              Pastikan <code>Code.gs</code> sudah memakai versi terbaru, lalu
+              pilih
+              <b>Deploy → Manage deployments → Edit → New version → Deploy</b>.
             </li>
             <li>
-              Simpan, lalu pilih <b>Deploy → New deployment → Web app</b>.
-            </li>
-            <li>
-              Pilih akun eksekusi dan akses sesuai kebutuhan privasi. Untuk
-              demo, akses publik hanya digunakan dengan data dummy.
-            </li>
-            <li>
-              Deploy, salin URL berakhiran <code>/exec</code>, lalu tempelkan ke
-              kolom di sebelah kiri.
+              Salin URL berakhiran <code>/exec</code> ke kolom di sebelah kiri.
             </li>
           </ol>
-          <p class="text-xs text-slate-500">
-            Spreadsheet akan memiliki dua sheet: <b>Catatan_Kesehatan</b> dan
-            <b>History_Obat</b>. Header dibuat otomatis oleh Apps Script.
-          </p>
         </div>
       </section>
+
       <footer class="text-center text-xs text-slate-400 py-4">
         SehatKu · Data disinkronkan melalui Google Apps Script dan Google
         Spreadsheet
@@ -546,15 +669,88 @@
 
     <script>
       "use strict";
-      const URL_KEY =
-        "https://script.google.com/macros/s/AKfycbxcnd4CTUZYK7grwZqeDX4PR40J53V28YAtcnpzsjJjpObpL16ScDyR8P20_5hET2dEXQ/exec";
+      const URL_KEY = "sehatku_gas_url";
+      // let gasUrl = localStorage.getItem(URL_KEY) || "";
       let gasUrl =
-        localStorage.getItem(URL_KEY) ||
-        "https://script.google.com/macros/s/AKfycbxcnd4CTUZYK7grwZqeDX4PR40J53V28YAtcnpzsjJjpObpL16ScDyR8P20_5hET2dEXQ/exec";
+        "https://script.google.com/macros/s/AKfycbxC5ATdU5glxZ2MhMR3kQJkUxZ1iQZ_kWlwe4zNJGkuzHe3W3oxEkH1bmAaHYbTuCbwFA/exec";
       let vitals = [],
         meds = [],
         bpChart = null,
         sugarChart = null;
+      let currentVitalMode = "all";
+
+      const TIMING_OPTIONS = [
+        "Sesudah Makan",
+        "Sebelum Makan",
+        "Bersama Makan",
+        "Sebelum Tidur",
+        "Saat Perlu (PRN)",
+        "Pagi - Sesudah Makan",
+        "Pagi - Sebelum Makan",
+        "Siang - Sesudah Makan",
+        "Malam - Sesudah Makan",
+      ];
+
+      // Referensi lengkap Satuan Obat & Contoh Dosis
+      const STANDARD_DOSE_UNITS = [
+        // Contoh penulisan dosis cepat
+        { value: "1 tab", label: "1 tablet" },
+        { value: "2 tab", label: "2 tablet" },
+        { value: "1/2 tab", label: "1/2 tablet" },
+        { value: "1 cap", label: "1 kapsul" },
+        { value: "1 kap", label: "1 kaplet" },
+        { value: "500 mg", label: "500 miligram" },
+        { value: "250 mg", label: "250 miligram" },
+        { value: "100 mg", label: "100 miligram" },
+        { value: "5 mL", label: "5 mililiter" },
+        { value: "10 mL", label: "10 mililiter" },
+        { value: "15 mL", label: "15 mililiter" },
+        { value: "2 gtt", label: "2 tetes" },
+        { value: "1 puff", label: "1 semprotan (Inhaler)" },
+        { value: "1 amp", label: "1 ampul (Injeksi)" },
+        { value: "1 vial", label: "1 vial (Injeksi)" },
+        { value: "1 supp", label: "1 suppositoria" },
+
+        // 1. Satuan berat
+        { value: "mg", label: "Satuan berat: miligram" },
+        { value: "g", label: "Satuan berat: gram" },
+        { value: "mcg", label: "Satuan berat: mikrogram" },
+        { value: "µg", label: "Satuan berat: mikrogram (µg)" },
+        { value: "kg", label: "Satuan berat: kilogram" },
+
+        // 2. Satuan volume
+        { value: "mL", label: "Satuan volume: mililiter" },
+        { value: "L", label: "Satuan volume: liter" },
+        { value: "cc", label: "Satuan volume: cubic centimeter (1 cc = 1 mL)" },
+        { value: "gtt", label: "Satuan volume: tetes (gtt)" },
+        { value: "tetes", label: "Satuan volume: satuan tetesan" },
+
+        // 3. Satuan bentuk sediaan obat
+        { value: "tab", label: "Sediaan: Tablet" },
+        { value: "cap", label: "Sediaan: Kapsul" },
+        { value: "kap", label: "Sediaan: Kaplet" },
+        { value: "pil", label: "Sediaan: Pil" },
+        { value: "botol", label: "Sediaan: Sirup / Infus (botol)" },
+        { value: "tube", label: "Sediaan: Salep / Krim (tube)" },
+        { value: "supp", label: "Sediaan: Suppositoria" },
+        { value: "ampul", label: "Sediaan: Injeksi (ampul)" },
+        { value: "vial", label: "Sediaan: Injeksi (vial)" },
+        { value: "kantong", label: "Sediaan: Infus (kantong)" },
+        { value: "puff", label: "Sediaan: Inhaler (puff)" },
+        { value: "semprotan", label: "Sediaan: Inhaler (semprotan)" },
+
+        // 4. Satuan khusus dalam pemberian obat
+        {
+          value: "IU",
+          label: "Khusus: International Unit (Unit Internasional)",
+        },
+        { value: "UI", label: "Khusus: Unit Internasional" },
+        { value: "mEq", label: "Khusus: miliekuivalen" },
+        { value: "mmol", label: "Khusus: milimol" },
+        { value: "%", label: "Khusus: persentase konsentrasi" },
+        { value: "ppm", label: "Khusus: part per million" },
+      ];
+
       const $ = (id) => document.getElementById(id);
       const esc = (value) =>
         String(value ?? "").replace(
@@ -568,11 +764,23 @@
               "'": "&#39;",
             })[c],
         );
+
       function localDateTime() {
         const d = new Date();
         d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
         return d.toISOString().slice(0, 16);
       }
+
+      function toInputDateTime(val) {
+        if (!val) return localDateTime();
+        const s = String(val);
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)) return s.slice(0, 16);
+        const d = new Date(s);
+        if (isNaN(d)) return localDateTime();
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        return d.toISOString().slice(0, 16);
+      }
+
       function toast(message, type = "info") {
         const el = document.createElement("div");
         el.className = `rounded-xl px-4 py-3 text-sm text-white shadow-lg ${type === "error" ? "bg-rose-600" : type === "success" ? "bg-emerald-600" : "bg-slate-800"}`;
@@ -580,11 +788,13 @@
         $("toast-area").appendChild(el);
         setTimeout(() => el.remove(), 3500);
       }
+
       function loading(on, title = "Memproses...") {
         $("loading-title").textContent = title;
         $("loading").classList.toggle("hidden", !on);
         $("loading").classList.toggle("flex", on);
       }
+
       function fmtDate(value) {
         if (!value) return "-";
         const d = new Date(value);
@@ -595,6 +805,7 @@
               timeStyle: "short",
             });
       }
+
       function openTab(name) {
         ["dashboard", "vitals", "meds", "settings"].forEach((t) => {
           $("view-" + t).classList.toggle("hidden-view", t !== name);
@@ -602,6 +813,7 @@
         });
         if (name === "dashboard") renderDashboard();
       }
+
       function setConnection(ok, label) {
         $("connection-label").textContent = label;
         $("connection").className =
@@ -609,10 +821,399 @@
         $("settings-status").textContent =
           label + (ok ? " · Sinkronisasi berhasil." : "");
       }
+
       function normalizeRecords() {
         vitals.sort((a, b) => new Date(b.datetime) - new Date(a.datetime));
         meds.sort((a, b) => new Date(b.datetime) - new Date(a.datetime));
+        updateMedDatalists();
       }
+
+      /* =========================================================
+       * 0. PEMBARUAN DATALIST OBAT & SATUAN DOSIS
+       * ========================================================= */
+      function updateMedDatalists() {
+        // 1. Datalist Nama Obat unik dari riwayat (beserta info dosis terakhir)
+        const nameMap = new Map();
+        meds.forEach((m) => {
+          const cleanName = String(m.name || "").trim();
+          if (!cleanName) return;
+          const key = cleanName.toLowerCase();
+          if (!nameMap.has(key)) {
+            nameMap.set(key, {
+              name: cleanName,
+              lastDosage: String(m.dosage || "").trim(),
+              lastTiming: String(m.timing || "").trim(),
+            });
+          }
+        });
+
+        const nameListEl = $("med-name-datalist");
+        if (nameListEl) {
+          nameListEl.innerHTML = Array.from(nameMap.values())
+            .sort((a, b) => a.name.localeCompare(b.name, "id"))
+            .map(
+              (item) =>
+                `<option value="${esc(item.name)}">${esc(item.lastDosage)}${item.lastTiming ? " · " + esc(item.lastTiming) : ""}</option>`,
+            )
+            .join("");
+        }
+
+        // 2. Datalist Dosis & Satuan (Riwayat dosis + Daftar standar satuan)
+        const doseMap = new Map();
+        meds.forEach((m) => {
+          const d = String(m.dosage || "").trim();
+          if (d && !doseMap.has(d.toLowerCase())) {
+            doseMap.set(d.toLowerCase(), { value: d, label: "Riwayat dosis" });
+          }
+        });
+        STANDARD_DOSE_UNITS.forEach((u) => {
+          if (!doseMap.has(u.value.toLowerCase())) {
+            doseMap.set(u.value.toLowerCase(), u);
+          }
+        });
+
+        const doseListEl = $("med-dose-datalist");
+        if (doseListEl) {
+          doseListEl.innerHTML = Array.from(doseMap.values())
+            .map(
+              (u) => `<option value="${esc(u.value)}">${esc(u.label)}</option>`,
+            )
+            .join("");
+        }
+      }
+
+      // Otomatis isi dosis terakhir jika user memilih obat yang pernah diinput & dosis masih kosong
+      function handleMedNameAutoFill(inputEl) {
+        const typed = inputEl.value.trim().toLowerCase();
+        if (!typed) return;
+        const row = inputEl.closest(".med-item-row");
+        if (!row) return;
+        const doseInput = row.querySelector(".m-item-dose");
+        if (!doseInput || doseInput.value.trim() !== "") return;
+
+        const match = meds.find(
+          (m) =>
+            String(m.name || "")
+              .trim()
+              .toLowerCase() === typed,
+        );
+        if (match && match.dosage) {
+          doseInput.value = match.dosage;
+        }
+      }
+
+      /* =========================================================
+       * 1. LOGIKA INPUT VITAL TERPISAH
+       * ========================================================= */
+      function setVitalMode(mode) {
+        currentVitalMode = mode;
+        document
+          .querySelectorAll("#vital-mode-pills .pill-btn")
+          .forEach((btn) => {
+            btn.classList.toggle("pill-active", btn.dataset.mode === mode);
+          });
+        ["bp", "sugar", "hr", "weight", "temp"].forEach((g) => {
+          const el = $("vgroup-" + g);
+          if (el)
+            el.classList.toggle("hidden", !(mode === "all" || mode === g));
+        });
+      }
+
+      /* =========================================================
+       * 2. LOGIKA MULTI-SESI & BANYAK OBAT PER SESI
+       * ========================================================= */
+      function buildTimingOptions(selected = "") {
+        const list =
+          TIMING_OPTIONS.includes(selected) || !selected
+            ? TIMING_OPTIONS
+            : [selected, ...TIMING_OPTIONS];
+        return list
+          .map(
+            (opt) =>
+              `<option value="${esc(opt)}" ${selected === opt ? "selected" : ""}>${esc(opt)}</option>`,
+          )
+          .join("");
+      }
+
+      function createMedItemRowHTML(item = {}, isEditMode = false) {
+        return `
+          <div class="med-item-row bg-white rounded-lg border border-slate-200 p-2.5 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="med-item-num text-[11px] font-bold text-slate-500">Obat #1</span>
+              ${
+                !isEditMode
+                  ? `<button type="button" onclick="removeMedItemFromSession(this)" class="btn-del-item text-[11px] text-rose-600 hover:underline font-semibold">
+                      <i class="fa-solid fa-xmark mr-0.5"></i>Hapus obat
+                    </button>`
+                  : ""
+              }
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <input
+                class="field m-item-name"
+                list="med-name-datalist"
+                autocomplete="off"
+                onchange="handleMedNameAutoFill(this)"
+                required
+                placeholder="Nama obat (pilih / ketik) *"
+                value="${esc(item.name || "")}"
+              />
+              <input
+                class="field m-item-dose"
+                list="med-dose-datalist"
+                autocomplete="off"
+                required
+                placeholder="Dosis & satuan (cth: 500 mg / 1 tab) *"
+                value="${esc(item.dosage || "")}"
+              />
+            </div>
+            <input class="field m-item-notes" placeholder="Catatan obat (opsional)" value="${esc(item.notes || "")}" />
+          </div>
+        `;
+      }
+
+      function createSessionCardHTML(sessionData = {}, isEditMode = false) {
+        const dt = sessionData.datetime || localDateTime();
+        const timing = sessionData.timing || TIMING_OPTIONS[0];
+        const status = sessionData.status || "Sudah Diminum";
+        const items =
+          Array.isArray(sessionData.items) && sessionData.items.length > 0
+            ? sessionData.items
+            : [{}];
+
+        return `
+          <div class="med-session-card rounded-2xl border-2 border-teal-100 bg-teal-50/40 p-3.5 space-y-3">
+            <div class="flex items-center justify-between border-b border-teal-100 pb-2">
+              <span class="session-title text-xs font-extrabold text-teal-800 uppercase tracking-wide">
+                <i class="fa-solid fa-clock mr-1"></i>Sesi #1
+              </span>
+              ${
+                !isEditMode
+                  ? `<button type="button" onclick="removeSessionCard(this)" class="btn-del-session text-xs text-rose-600 hover:text-rose-800 font-semibold">
+                      <i class="fa-solid fa-trash-can mr-1"></i>Hapus Sesi
+                    </button>`
+                  : ""
+              }
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <label class="block text-[11px] font-semibold text-slate-700">Waktu Minum
+                <input class="field mt-1 s-datetime" type="datetime-local" required value="${esc(dt)}" />
+              </label>
+              <label class="block text-[11px] font-semibold text-slate-700">Aturan Minum
+                <select class="field mt-1 s-timing">${buildTimingOptions(timing)}</select>
+              </label>
+              <label class="block text-[11px] font-semibold text-slate-700">Status
+                <select class="field mt-1 s-status">
+                  <option value="Sudah Diminum" ${status === "Sudah Diminum" ? "selected" : ""}>Sudah Diminum</option>
+                  <option value="Belum Diminum" ${status === "Belum Diminum" ? "selected" : ""}>Belum Diminum</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="space-y-2 s-items-list">
+              ${items.map((it) => createMedItemRowHTML(it, isEditMode)).join("")}
+            </div>
+
+            ${
+              !isEditMode
+                ? `<button type="button" onclick="addMedItemToSession(this)" class="btn-sm btn-teal-soft w-full text-center">
+                    <i class="fa-solid fa-plus mr-1"></i>Tambah Obat di Sesi Ini
+                  </button>`
+                : ""
+            }
+          </div>
+        `;
+      }
+
+      function refreshSessionBadges() {
+        const sessionCards = document.querySelectorAll(
+          "#med-sessions-container .med-session-card",
+        );
+        let totalMeds = 0;
+
+        sessionCards.forEach((sCard, sIdx) => {
+          const titleEl = sCard.querySelector(".session-title");
+          if (titleEl)
+            titleEl.innerHTML = `<i class="fa-solid fa-clock mr-1"></i>Sesi #${sIdx + 1}`;
+          const delSessionBtn = sCard.querySelector(".btn-del-session");
+          if (delSessionBtn)
+            delSessionBtn.classList.toggle("hidden", sessionCards.length === 1);
+
+          const itemRows = sCard.querySelectorAll(".med-item-row");
+          totalMeds += itemRows.length;
+          itemRows.forEach((row, iIdx) => {
+            const numEl = row.querySelector(".med-item-num");
+            if (numEl) numEl.textContent = `Obat #${iIdx + 1}`;
+            const delItemBtn = row.querySelector(".btn-del-item");
+            if (delItemBtn)
+              delItemBtn.classList.toggle("hidden", itemRows.length === 1);
+          });
+        });
+
+        const badge = $("total-med-badge");
+        if (badge) badge.textContent = totalMeds;
+      }
+
+      function addMedSessionCard(sessionData = {}) {
+        $("med-sessions-container").insertAdjacentHTML(
+          "beforeend",
+          createSessionCardHTML(sessionData, false),
+        );
+        refreshSessionBadges();
+      }
+
+      function removeSessionCard(btn) {
+        const cards = document.querySelectorAll(
+          "#med-sessions-container .med-session-card",
+        );
+        if (cards.length <= 1) return;
+        btn.closest(".med-session-card").remove();
+        refreshSessionBadges();
+      }
+
+      function addMedItemToSession(btn) {
+        const list = btn
+          .closest(".med-session-card")
+          .querySelector(".s-items-list");
+        list.insertAdjacentHTML("beforeend", createMedItemRowHTML({}, false));
+        refreshSessionBadges();
+      }
+
+      function removeMedItemFromSession(btn) {
+        const list = btn.closest(".s-items-list");
+        if (list.querySelectorAll(".med-item-row").length <= 1) return;
+        btn.closest(".med-item-row").remove();
+        refreshSessionBadges();
+      }
+
+      function resetMedForm() {
+        $("m-edit-id").value = "";
+        $("med-form-title").textContent = "Catat Konsumsi Obat";
+        $("med-form-subtitle").textContent =
+          "Ketik atau pilih dari riwayat obat & daftar satuan dosis";
+        $("btn-cancel-med-edit").classList.add("hidden");
+        $("btn-add-session").classList.remove("hidden");
+        $("btn-submit-med").className = "btn btn-primary w-full py-3 text-sm";
+        $("btn-submit-med").innerHTML =
+          '<i class="fa-solid fa-floppy-disk mr-1.5"></i>Simpan Semua (<span id="total-med-badge">1</span> Obat)';
+
+        $("med-sessions-container").innerHTML = createSessionCardHTML(
+          {},
+          false,
+        );
+        refreshSessionBadges();
+      }
+
+      function groupMedsBySession(medList) {
+        const map = new Map();
+        medList.forEach((m) => {
+          const minuteKey = String(m.datetime || "").slice(0, 16);
+          const timingKey = String(m.timing || "").trim();
+          const key = `${minuteKey}__${timingKey}`;
+          if (!map.has(key)) {
+            map.set(key, {
+              key,
+              datetime: m.datetime,
+              timing: m.timing,
+              items: [],
+            });
+          }
+          map.get(key).items.push(m);
+        });
+        return Array.from(map.values());
+      }
+
+      function copySessionGroup(sessionKey) {
+        const groups = groupMedsBySession(meds);
+        const group = groups.find((g) => g.key === sessionKey);
+        if (!group) return;
+
+        const existingNames = Array.from(
+          document.querySelectorAll(".m-item-name"),
+        ).map((i) => i.value.trim());
+        const isFormEmpty =
+          !$("m-edit-id").value && existingNames.every((v) => v === "");
+
+        if (isFormEmpty) {
+          $("med-sessions-container").innerHTML = "";
+        }
+
+        addMedSessionCard({
+          datetime: localDateTime(),
+          timing: group.timing,
+          status: "Sudah Diminum",
+          items: group.items.map((it) => ({
+            name: it.name,
+            dosage: it.dosage,
+            notes: it.notes,
+          })),
+        });
+
+        openTab("meds");
+        $("med-form").scrollIntoView({ behavior: "smooth", block: "start" });
+        toast(
+          `Sesi (${group.items.length} obat · ${group.timing}) disalin ke form.`,
+          "info",
+        );
+      }
+
+      function copySingleMed(id) {
+        const item = meds.find((m) => m.id === id);
+        if (!item) return;
+
+        const existingNames = Array.from(
+          document.querySelectorAll(".m-item-name"),
+        ).map((i) => i.value.trim());
+        const isFormEmpty =
+          !$("m-edit-id").value && existingNames.every((v) => v === "");
+        if (isFormEmpty) $("med-sessions-container").innerHTML = "";
+
+        addMedSessionCard({
+          datetime: localDateTime(),
+          timing: item.timing,
+          status: "Sudah Diminum",
+          items: [{ name: item.name, dosage: item.dosage, notes: item.notes }],
+        });
+
+        openTab("meds");
+        $("med-form").scrollIntoView({ behavior: "smooth", block: "start" });
+        toast(`Obat "${item.name}" disalin ke form.`, "info");
+      }
+
+      function startEditMed(id) {
+        const item = meds.find((m) => m.id === id);
+        if (!item) return;
+
+        $("m-edit-id").value = item.id;
+        $("med-form-title").textContent = "Edit Catatan Obat";
+        $("med-form-subtitle").textContent =
+          "Perbarui detail obat lalu klik simpan";
+        $("btn-cancel-med-edit").classList.remove("hidden");
+        $("btn-add-session").classList.add("hidden");
+        $("btn-submit-med").className = "btn btn-amber w-full py-3 text-sm";
+        $("btn-submit-med").innerHTML =
+          '<i class="fa-solid fa-pen-to-square mr-1.5"></i>Simpan Perubahan';
+
+        $("med-sessions-container").innerHTML = createSessionCardHTML(
+          {
+            datetime: toInputDateTime(item.datetime),
+            timing: item.timing,
+            status: item.status || "Sudah Diminum",
+            items: [
+              { name: item.name, dosage: item.dosage, notes: item.notes },
+            ],
+          },
+          true,
+        );
+
+        openTab("meds");
+        $("med-form").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      /* =========================================================
+       * 3. KOMUNIKASI API GOOGLE APPS SCRIPT + AUTO FALLBACK
+       * ========================================================= */
       async function getData(url = gasUrl) {
         if (!url) throw new Error("URL Apps Script belum diatur.");
         const response = await fetch(url + "?t=" + Date.now(), {
@@ -631,6 +1232,7 @@
           );
         return data;
       }
+
       async function syncData(silent = false) {
         if (!gasUrl) {
           setConnection(false, "Belum terhubung");
@@ -650,7 +1252,7 @@
           renderAll();
           if (!silent)
             toast(
-              `Sinkronisasi berhasil: ${vitals.length} catatan vital dan ${meds.length} riwayat obat.`,
+              `Sinkronisasi berhasil: ${vitals.length} vital & ${meds.length} obat.`,
               "success",
             );
         } catch (e) {
@@ -660,23 +1262,23 @@
           if (!silent) loading(false);
         }
       }
+
       async function sendAction(payload) {
         if (!gasUrl) throw new Error("URL Apps Script belum diatur.");
-        /* text/plain menghindari preflight OPTIONS */ await fetch(gasUrl, {
+        await fetch(gasUrl, {
           method: "POST",
           mode: "no-cors",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify(payload),
         });
-        /* no-cors tidak mengizinkan membaca respons; verifikasi dilakukan dengan GET setelah penulisan */ await new Promise(
-          (resolve) => setTimeout(resolve, 700),
-        );
+        await new Promise((resolve) => setTimeout(resolve, 900));
         const data = await getData();
         vitals = data.vitals;
         meds = data.meds;
         normalizeRecords();
         renderAll();
       }
+
       async function saveUrlAndSync() {
         const value = $("gas-url").value.trim();
         if (
@@ -692,6 +1294,7 @@
         localStorage.setItem(URL_KEY, gasUrl);
         await syncData();
       }
+
       async function testConnection() {
         const value = $("gas-url").value.trim();
         try {
@@ -707,32 +1310,110 @@
           loading(false);
         }
       }
+
+      /* =========================================================
+       * 4. RENDERING TABEL VITAL, KARTU SESI OBAT, & DASHBOARD
+       * ========================================================= */
       function renderAll() {
         renderTables();
         renderDashboard();
       }
+
       function renderTables() {
         const vs = $("v-search").value.toLowerCase();
         const ms = $("m-search").value.toLowerCase();
+
         $("vital-rows").innerHTML =
           vitals
             .filter((v) => JSON.stringify(v).toLowerCase().includes(vs))
             .map(
               (v) =>
-                `<tr><td>${fmtDate(v.datetime)}</td><td>${v.systolic || v.diastolic ? esc(v.systolic || "-") + "/" + esc(v.diastolic || "-") : "-"}</td><td>${v.sugar ? esc(v.sugar) + " mg/dL<br>" + esc(v.sugarType) : "-"}</td><td>${v.hr ? esc(v.hr) + " bpm" : ""}${v.weight ? "<br>" + esc(v.weight) + " kg" : ""}${v.temp ? "<br>" + esc(v.temp) + " °C" : ""}</td><td>${esc(v.notes || "-")}</td><td><button class="btn btn-danger" onclick="deleteRecord('vital','${esc(v.id)}')"><i class="fa-solid fa-trash"></i></button></td></tr>`,
+                `<tr>
+                  <td class="whitespace-nowrap">${fmtDate(v.datetime)}</td>
+                  <td>${v.systolic || v.diastolic ? `<span class="font-semibold text-rose-700">${esc(v.systolic || "-")}/${esc(v.diastolic || "-")}</span>` : "-"}</td>
+                  <td>${v.sugar ? `<span class="font-semibold text-amber-700">${esc(v.sugar)} mg/dL</span><br><span class="text-[11px] text-slate-400">${esc(v.sugarType)}</span>` : "-"}</td>
+                  <td>${
+                    [
+                      v.hr ? `${esc(v.hr)} bpm` : "",
+                      v.weight ? `${esc(v.weight)} kg` : "",
+                      v.temp ? `${esc(v.temp)} °C` : "",
+                    ]
+                      .filter(Boolean)
+                      .join("<br>") || "-"
+                  }</td>
+                  <td>${esc(v.notes || "-")}</td>
+                  <td><button class="btn-sm btn-danger" title="Hapus" onclick="deleteRecord('vital','${esc(v.id)}')"><i class="fa-solid fa-trash"></i></button></td>
+                </tr>`,
             )
             .join("") ||
           '<tr><td colspan="6" class="text-center text-slate-400 py-8">Belum ada catatan atau data tidak ditemukan.</td></tr>';
-        $("med-rows").innerHTML =
-          meds
-            .filter((m) => JSON.stringify(m).toLowerCase().includes(ms))
-            .map(
-              (m) =>
-                `<tr><td>${fmtDate(m.datetime)}</td><td class="font-semibold">${esc(m.name)}</td><td>${esc(m.dosage)}<br><span class="text-slate-400">${esc(m.timing)}</span></td><td>${esc(m.status)}</td><td>${esc(m.notes || "-")}</td><td class="whitespace-nowrap"><button class="btn btn-light" onclick="toggleStatus('${esc(m.id)}','${m.status === "Sudah Diminum" ? "Belum Diminum" : "Sudah Diminum"}')">Ubah</button> <button class="btn btn-danger" onclick="deleteRecord('med','${esc(m.id)}')"><i class="fa-solid fa-trash"></i></button></td></tr>`,
-            )
+
+        const filteredMeds = meds.filter((m) =>
+          JSON.stringify(m).toLowerCase().includes(ms),
+        );
+        const sessionGroups = groupMedsBySession(filteredMeds);
+
+        $("med-sessions-list").innerHTML =
+          sessionGroups
+            .map((grp) => {
+              const itemsHTML = grp.items
+                .map((m) => {
+                  const isTaken = m.status === "Sudah Diminum";
+                  return `
+                    <div class="flex flex-wrap items-center justify-between gap-2 py-2 px-3 rounded-xl bg-white border border-slate-100">
+                      <div class="min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                          <span class="font-bold text-sm text-slate-800">${esc(m.name)}</span>
+                          <span class="text-xs px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium">${esc(m.dosage)}</span>
+                          <span class="text-[11px] px-2 py-0.5 rounded-full font-semibold ${isTaken ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}">
+                            ${esc(m.status)}
+                          </span>
+                        </div>
+                        ${m.notes ? `<p class="text-xs text-slate-400 mt-0.5">${esc(m.notes)}</p>` : ""}
+                      </div>
+                      <div class="flex items-center gap-1 shrink-0">
+                        <button class="btn-sm btn-light" title="Ubah Status" onclick="toggleStatus('${esc(m.id)}','${isTaken ? "Belum Diminum" : "Sudah Diminum"}')">
+                          <i class="fa-solid fa-check-double"></i>
+                        </button>
+                        <button class="btn-sm btn-light" title="Copy 1 Obat Ini" onclick="copySingleMed('${esc(m.id)}')">
+                          <i class="fa-solid fa-copy"></i>
+                        </button>
+                        <button class="btn-sm btn-light" title="Edit Obat" onclick="startEditMed('${esc(m.id)}')">
+                          <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button class="btn-sm btn-danger" title="Hapus Obat" onclick="deleteRecord('med','${esc(m.id)}')">
+                          <i class="fa-solid fa-trash"></i>
+                        </button>
+                      </div>
+                    </div>
+                  `;
+                })
+                .join("");
+
+              return `
+                <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-2.5">
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="text-xs font-extrabold text-teal-800 bg-teal-100/80 px-2.5 py-1 rounded-lg">
+                        <i class="fa-regular fa-clock mr-1"></i>${fmtDate(grp.datetime)}
+                      </span>
+                      <span class="text-xs font-semibold text-indigo-800 bg-indigo-100/70 px-2.5 py-1 rounded-lg">
+                        ${esc(grp.timing)}
+                      </span>
+                      <span class="text-xs text-slate-500 font-semibold">${grp.items.length} obat</span>
+                    </div>
+                    <button class="btn-sm btn-teal-soft" onclick="copySessionGroup('${esc(grp.key)}')">
+                      <i class="fa-solid fa-copy mr-1"></i>Copy Sesi (${grp.items.length} Obat)
+                    </button>
+                  </div>
+                  <div class="space-y-1.5">${itemsHTML}</div>
+                </div>
+              `;
+            })
             .join("") ||
-          '<tr><td colspan="6" class="text-center text-slate-400 py-8">Belum ada riwayat obat atau data tidak ditemukan.</td></tr>';
+          '<div class="text-center text-slate-400 py-10 text-sm border border-dashed border-slate-200 rounded-2xl">Belum ada riwayat obat atau data tidak ditemukan.</div>';
       }
+
       function renderDashboard() {
         const bp = vitals.find((v) => v.systolic && v.diastolic),
           sugar = vitals.find((v) => v.sugar),
@@ -751,6 +1432,7 @@
         $("sum-weight-date").textContent = weight
           ? fmtDate(weight.datetime)
           : "Belum ada data";
+
         const today = localDateTime().slice(0, 10),
           taken = meds.filter(
             (m) =>
@@ -761,24 +1443,46 @@
         $("sum-med-last").textContent = meds[0]
           ? `Terakhir: ${meds[0].name}`
           : "Belum ada data";
+
+        const recentSessions = groupMedsBySession(meds).slice(0, 4);
         $("recent-meds").innerHTML =
-          meds
-            .slice(0, 5)
+          recentSessions
             .map(
-              (m) =>
-                `<div class="rounded-lg bg-slate-50 p-3"><b>${esc(m.name)}</b> · ${esc(m.status)}<p class="text-xs text-slate-400">${fmtDate(m.datetime)} · ${esc(m.dosage)}</p></div>`,
+              (grp) =>
+                `<div class="rounded-lg bg-slate-50 p-3 flex justify-between items-center gap-2">
+                  <div>
+                    <b>${grp.items.map((i) => esc(i.name)).join(", ")}</b>
+                    <p class="text-xs text-slate-400">${fmtDate(grp.datetime)} · ${esc(grp.timing)} (${grp.items.length} obat)</p>
+                  </div>
+                  <button class="btn-sm btn-teal-soft shrink-0" onclick="copySessionGroup('${esc(grp.key)}')">
+                    <i class="fa-solid fa-copy mr-1"></i>Copy
+                  </button>
+                </div>`,
             )
             .join("") || "Belum ada data.";
+
         $("recent-vitals").innerHTML =
           vitals
-            .slice(0, 5)
-            .map(
-              (v) =>
-                `<div class="rounded-lg bg-slate-50 p-3"><b>${v.systolic ? esc(v.systolic) + "/" + esc(v.diastolic) + " mmHg" : "Pemeriksaan vital"}</b> ${v.sugar ? "· Gula " + esc(v.sugar) + " mg/dL" : ""}<p class="text-xs text-slate-400">${fmtDate(v.datetime)} · ${esc(v.notes || "Tanpa catatan")}</p></div>`,
-            )
+            .slice(0, 4)
+            .map((v) => {
+              const parts = [];
+              if (v.systolic || v.diastolic)
+                parts.push(
+                  `Tensi ${esc(v.systolic || "-")}/${esc(v.diastolic || "-")} mmHg`,
+                );
+              if (v.sugar) parts.push(`Gula ${esc(v.sugar)} mg/dL`);
+              if (v.hr) parts.push(`Nadi ${esc(v.hr)} bpm`);
+              if (v.weight) parts.push(`BB ${esc(v.weight)} kg`);
+              if (v.temp) parts.push(`Suhu ${esc(v.temp)} °C`);
+              return `<div class="rounded-lg bg-slate-50 p-3">
+                <b>${parts.join(" · ") || "Pemeriksaan vital"}</b>
+                <p class="text-xs text-slate-400">${fmtDate(v.datetime)} · ${esc(v.notes || "Tanpa catatan")}</p>
+              </div>`;
+            })
             .join("") || "Belum ada data.";
         drawCharts();
       }
+
       function drawCharts() {
         if (typeof Chart === "undefined") return;
         const b = vitals
@@ -832,20 +1536,30 @@
           options: { responsive: true, maintainAspectRatio: false },
         });
       }
+
+      /* =========================================================
+       * 5. SUBMIT FORM VITAL & MULTI-SESI OBAT
+       * ========================================================= */
       $("vital-form").addEventListener("submit", async (e) => {
         e.preventDefault();
+        const isVisible = (g) =>
+          currentVitalMode === "all" || currentVitalMode === g;
         const data = {
           id: crypto.randomUUID(),
           datetime: $("v-datetime").value,
-          systolic: $("v-sys").value,
-          diastolic: $("v-dia").value,
-          sugar: $("v-sugar").value,
-          sugarType: $("v-sugar-type").value,
-          hr: $("v-hr").value,
-          weight: $("v-weight").value,
-          temp: $("v-temp").value,
-          notes: $("v-notes").value,
+          systolic: isVisible("bp") ? $("v-sys").value : "",
+          diastolic: isVisible("bp") ? $("v-dia").value : "",
+          sugar: isVisible("sugar") ? $("v-sugar").value : "",
+          sugarType:
+            isVisible("sugar") && $("v-sugar").value
+              ? $("v-sugar-type").value
+              : "",
+          hr: isVisible("hr") ? $("v-hr").value : "",
+          weight: isVisible("weight") ? $("v-weight").value : "",
+          temp: isVisible("temp") ? $("v-temp").value : "",
+          notes: $("v-notes").value.trim(),
         };
+
         if (!Object.values(data).some((v, i) => i > 1 && String(v).trim())) {
           toast("Isi minimal satu nilai pemeriksaan.", "error");
           return;
@@ -855,10 +1569,7 @@
           await sendAction({ action: "add", type: "vital", data });
           e.target.reset();
           $("v-datetime").value = localDateTime();
-          toast(
-            "Catatan berhasil dikirim dan diverifikasi dari Spreadsheet.",
-            "success",
-          );
+          toast("Catatan vital berhasil disimpan.", "success");
         } catch (err) {
           toast(
             "Penyimpanan belum dapat diverifikasi: " + err.message,
@@ -868,23 +1579,101 @@
           loading(false);
         }
       });
+
       $("med-form").addEventListener("submit", async (e) => {
         e.preventDefault();
-        const data = {
-          id: crypto.randomUUID(),
-          datetime: $("m-datetime").value,
-          name: $("m-name").value.trim(),
-          dosage: $("m-dose").value.trim(),
-          timing: $("m-timing").value,
-          status: $("m-status").value,
-          notes: $("m-notes").value.trim(),
-        };
+        const editId = $("m-edit-id").value.trim();
+        const sessionCards = Array.from(
+          document.querySelectorAll(
+            "#med-sessions-container .med-session-card",
+          ),
+        );
+        const allItems = [];
+
+        sessionCards.forEach((sCard, sIdx) => {
+          const datetime = sCard.querySelector(".s-datetime").value;
+          const timing = sCard.querySelector(".s-timing").value;
+          const status = sCard.querySelector(".s-status").value;
+          const rows = Array.from(sCard.querySelectorAll(".med-item-row"));
+
+          rows.forEach((row, iIdx) => {
+            allItems.push({
+              id: editId || crypto.randomUUID(),
+              datetime,
+              name: row.querySelector(".m-item-name").value.trim(),
+              dosage: row.querySelector(".m-item-dose").value.trim(),
+              timing,
+              status,
+              notes: row.querySelector(".m-item-notes").value.trim(),
+              label: `Sesi #${sIdx + 1} - Obat #${iIdx + 1}`,
+            });
+          });
+        });
+
+        const invalid = allItems.find(
+          (it) => !it.name || !it.dosage || !it.datetime,
+        );
+        if (invalid) {
+          toast(
+            `Lengkapi waktu, nama obat, dan dosis pada ${invalid.label}.`,
+            "error",
+          );
+          return;
+        }
+
         try {
-          loading(true, "Menyimpan riwayat obat...");
-          await sendAction({ action: "add", type: "med", data });
-          e.target.reset();
-          $("m-datetime").value = localDateTime();
-          toast("Riwayat obat berhasil dikirim dan diverifikasi.", "success");
+          if (editId) {
+            loading(true, "Memperbarui catatan obat...");
+            await sendAction({
+              action: "edit",
+              type: "med",
+              data: allItems[0],
+            });
+            toast("Perubahan catatan obat berhasil disimpan.", "success");
+          } else if (allItems.length === 1) {
+            loading(true, "Menyimpan riwayat obat...");
+            await sendAction({ action: "add", type: "med", data: allItems[0] });
+            toast("Riwayat obat berhasil disimpan.", "success");
+          } else {
+            loading(
+              true,
+              `Menyimpan ${allItems.length} obat dari ${sessionCards.length} sesi...`,
+            );
+            await sendAction({
+              action: "add_batch",
+              type: "med",
+              items: allItems,
+            });
+
+            const savedIds = new Set(meds.map((m) => m.id));
+            const unsaved = allItems.filter((it) => !savedIds.has(it.id));
+            if (unsaved.length > 0) {
+              for (const item of unsaved) {
+                await fetch(gasUrl, {
+                  method: "POST",
+                  mode: "no-cors",
+                  headers: { "Content-Type": "text/plain;charset=utf-8" },
+                  body: JSON.stringify({
+                    action: "add",
+                    type: "med",
+                    data: item,
+                  }),
+                });
+              }
+              await new Promise((r) => setTimeout(r, 900));
+              const fresh = await getData();
+              vitals = fresh.vitals;
+              meds = fresh.meds;
+              normalizeRecords();
+              renderAll();
+            }
+
+            toast(
+              `${allItems.length} obat (${sessionCards.length} sesi) berhasil disimpan.`,
+              "success",
+            );
+          }
+          resetMedForm();
         } catch (err) {
           toast(
             "Penyimpanan belum dapat diverifikasi: " + err.message,
@@ -894,6 +1683,7 @@
           loading(false);
         }
       });
+
       async function toggleStatus(id, status) {
         if (!confirm("Ubah status konsumsi obat?")) return;
         try {
@@ -911,11 +1701,13 @@
           loading(false);
         }
       }
+
       async function deleteRecord(type, id) {
         if (!confirm("Hapus catatan ini dari Google Spreadsheet?")) return;
         try {
           loading(true, "Menghapus data...");
           await sendAction({ action: "delete", type, id });
+          if (type === "med" && $("m-edit-id").value === id) resetMedForm();
           toast("Data berhasil dihapus.", "success");
         } catch (e) {
           toast(e.message, "error");
@@ -923,9 +1715,11 @@
           loading(false);
         }
       }
+
       function csvCell(v) {
         return '"' + String(v ?? "").replace(/"/g, '""') + '"';
       }
+
       function exportCSV() {
         const rows = [
           [
@@ -994,18 +1788,31 @@
         a.click();
         URL.revokeObjectURL(a.href);
       }
+
       window.openTab = openTab;
       window.syncData = syncData;
       window.saveUrlAndSync = saveUrlAndSync;
       window.testConnection = testConnection;
       window.renderTables = renderTables;
+      window.setVitalMode = setVitalMode;
+      window.handleMedNameAutoFill = handleMedNameAutoFill;
+      window.addMedSessionCard = addMedSessionCard;
+      window.removeSessionCard = removeSessionCard;
+      window.addMedItemToSession = addMedItemToSession;
+      window.removeMedItemFromSession = removeMedItemFromSession;
+      window.resetMedForm = resetMedForm;
+      window.copySessionGroup = copySessionGroup;
+      window.copySingleMed = copySingleMed;
+      window.startEditMed = startEditMed;
       window.toggleStatus = toggleStatus;
       window.deleteRecord = deleteRecord;
       window.exportCSV = exportCSV;
+
       window.addEventListener("DOMContentLoaded", () => {
         $("gas-url").value = gasUrl;
         $("v-datetime").value = localDateTime();
-        $("m-datetime").value = localDateTime();
+        updateMedDatalists();
+        resetMedForm();
         setConnection(
           false,
           gasUrl ? "URL tersimpan · menunggu sinkronisasi" : "Belum terhubung",
